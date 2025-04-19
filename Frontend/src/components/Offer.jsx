@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import Footer from './footer';
+import Footer from './Footer';
 
 const OfferPage = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
