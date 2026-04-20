@@ -1,6 +1,7 @@
 // Frontend/src/components/RestaurantDetails.jsx
 
 import React, { useState, useEffect, useRef } from "react";
+import { useParams } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { loadStripe } from "@stripe/stripe-js";
@@ -23,7 +24,110 @@ import {
   IoInformationCircle,
 } from "react-icons/io5";
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "https://king-hub-1.onrender.com";
+
 const RestaurantDetails = ({ restaurantId, cartItems }) => {
+  const { id } = useParams();
+  const resolvedRestaurantId = restaurantId || id;
+
+  const getRandomImage = (seed, width = 1200, height = 700) =>
+    `https://picsum.photos/seed/${encodeURIComponent(
+      seed || "king-hub"
+    )}/${width}/${height}`;
+
+  const getFoodKeyword = (item, categoryName = "") => {
+    const itemText = `${item?.itemName || item?.name || ""} ${
+      item?.description || ""
+    } ${categoryName}`.toLowerCase();
+
+    const keywordMap = [
+      ["burger", "burger"],
+      ["pizza", "pizza"],
+      ["fries", "fries"],
+      ["french fry", "fries"],
+      ["chicken", "fried chicken"],
+      ["paneer", "paneer curry"],
+      ["sandwich", "sandwich"],
+      ["wrap", "wrap"],
+      ["roll", "roll"],
+      ["pasta", "pasta"],
+      ["noodle", "noodles"],
+      ["biryani", "biryani"],
+      ["rice", "rice bowl"],
+      ["salad", "salad"],
+      ["soup", "soup"],
+      ["curry", "curry"],
+      ["taco", "tacos"],
+      ["shawarma", "shawarma"],
+      ["dosa", "dosa"],
+      ["idli", "idli"],
+      ["ice cream", "ice cream"],
+      ["cake", "cake"],
+      ["dessert", "dessert"],
+      ["coffee", "coffee"],
+      ["tea", "tea"],
+      ["juice", "juice"],
+      ["drink", "cold drink"],
+      ["soda", "soda"],
+    ];
+
+    const match = keywordMap.find(([needle]) => itemText.includes(needle));
+    return match ? match[1] : (categoryName || "food").toLowerCase();
+  };
+
+  const getFoodImage = (item, categoryName = "") => {
+    const keyword = getFoodKeyword(item, categoryName);
+    const lockSeed = item?.id || item?._id || item?.itemName || item?.name || keyword;
+    return `https://loremflickr.com/900/600/${encodeURIComponent(
+      keyword
+    )}?lock=${encodeURIComponent(lockSeed)}`;
+  };
+
+  const getRestaurantCoverImage = () => {
+    if (restaurant?.bgImage) return restaurant.bgImage;
+    return getRandomImage(`${resolvedRestaurantId || "restaurant"}-cover`);
+  };
+
+  const getRestaurantLogoImage = () => {
+    if (restaurant?.logo) return restaurant.logo;
+    return getRandomImage(`${resolvedRestaurantId || "restaurant"}-logo`, 300, 300);
+  };
+
+  const getMenuItemImage = (item, categoryName = "") => {
+    return getFoodImage(item, categoryName);
+  };
+
+  const getItemKey = (item) => item?._id || item?.id || item?.itemName || item?.name;
+
+  const normalizeCartItem = (item, categoryName = "") => {
+    const foodname = item?.foodname || item?.itemName || item?.name || "Food Item";
+
+    return {
+      _id: getItemKey(item),
+      id: item?.id || item?._id || item?.itemName || item?.name,
+      foodname,
+      itemName: item?.itemName || foodname,
+      description: item?.description || "",
+      imageUrl: item?.imageUrl || item?.image || getFoodImage(item, categoryName),
+      price: Number(item?.price || item?.totalPrice || 0),
+      quantity: Number(item?.quantity || 1),
+      categoryName,
+      addOns: item?.addOns || [],
+      allergies: item?.allergies || [],
+      spiceLevel: item?.spiceLevel || 0,
+      rating: item?.rating || 0,
+      isPopular: Boolean(item?.isPopular),
+    };
+  };
+
+  const withFallbackImage = (event, seed, width = 800, height = 600) => {
+    const fallbackSrc = getRandomImage(seed, width, height);
+    if (event.currentTarget.src !== fallbackSrc) {
+      event.currentTarget.src = fallbackSrc;
+    }
+  };
+
   // State for the restaurant data
   const [restaurant, setRestaurant] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -48,6 +152,10 @@ const RestaurantDetails = ({ restaurantId, cartItems }) => {
 
   const menuRef = useRef(null);
   const cartRef = useRef(null);
+
+  useEffect(() => {
+    setCart(cartItems || []);
+  }, [cartItems]);
 
   // Handle scroll events
   useEffect(() => {
@@ -78,16 +186,21 @@ const RestaurantDetails = ({ restaurantId, cartItems }) => {
   // Fetch restaurant data
   useEffect(() => {
     const fetchRestaurantData = async () => {
+      if (!resolvedRestaurantId) {
+        setLoading(false);
+        return;
+      }
+
       try {
         const response = await fetch(
-          "https://king-hub-1.onrender.com/api/restaurants/67c54bc9758356ddea201250"
+          `https://king-hub-1.onrender.com/api/restaurants/${resolvedRestaurantId}`
         );
         if (!response.ok) {
           throw new Error("Failed to fetch restaurant data");
         }
         const data = await response.json();
         setRestaurant(data);
-        setActiveCategory(data.menuCategories?.[0]?.id || ""); // Set the first category as active
+        setActiveCategory(data.menu?.[0]?.id || data.menu?.[0]?.categoryName || ""); // Set the first category as active
       } catch (error) {
         console.error("Error fetching restaurant data:", error);
       } finally {
@@ -96,7 +209,7 @@ const RestaurantDetails = ({ restaurantId, cartItems }) => {
     };
 
     fetchRestaurantData();
-  }, [restaurantId]);
+  }, [resolvedRestaurantId]);
 
   // Monitor Cart Updates
   useEffect(() => {
@@ -123,7 +236,7 @@ const RestaurantDetails = ({ restaurantId, cartItems }) => {
 
     try {
       const response = await fetch(
-        "https://king-hub-1.onrender.com/api/payment/create-checkout-session",
+        `${API_BASE_URL}/api/payment/create-checkout-session`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -233,26 +346,27 @@ const RestaurantDetails = ({ restaurantId, cartItems }) => {
 
   // Add to cart function
   const addToCart = (item) => {
+    const normalizedItem = normalizeCartItem(item);
     const existingItemIndex = cart.findIndex(
-      (cartItem) => cartItem.id === item.id
+      (cartItem) => getItemKey(cartItem) === getItemKey(normalizedItem)
     );
 
     if (existingItemIndex >= 0) {
       const updatedCart = [...cart];
       updatedCart[existingItemIndex] = {
         ...updatedCart[existingItemIndex],
-        quantity: updatedCart[existingItemIndex].quantity + 1,
+        quantity: (updatedCart[existingItemIndex].quantity || 1) + 1,
       };
       setCart(updatedCart);
     } else {
-      setCart([...cart, { ...item, quantity: 1 }]);
+      setCart([...cart, normalizedItem]);
     }
   };
 
   // Remove from cart function
   const removeFromCart = (itemId) => {
     const existingItemIndex = cart.findIndex(
-      (cartItem) => cartItem.id === itemId
+      (cartItem) => getItemKey(cartItem) === itemId
     );
 
     if (existingItemIndex >= 0) {
@@ -264,7 +378,7 @@ const RestaurantDetails = ({ restaurantId, cartItems }) => {
         };
         setCart(updatedCart);
       } else {
-        setCart(cart.filter((item) => item.id !== itemId));
+        setCart(cart.filter((item) => getItemKey(item) !== itemId));
       }
     }
   };
@@ -385,12 +499,20 @@ const showItemAddedNotification = (item) => {
 
           <div className="relative h-64">
             <img
-              src={item.image}
-              alt={item.name}
+              src={getMenuItemImage(item)}
+              alt={item.foodname || item.itemName || item.name}
               className="w-full h-full object-cover"
+              onError={(e) =>
+                withFallbackImage(
+                  e,
+                  `${getItemKey(item) || item.itemName || "modal-item"}-modal`,
+                  900,
+                  600
+                )
+              }
             />
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
-              <h2 className="text-white text-2xl font-bold">{item.name}</h2>
+              <h2 className="text-white text-2xl font-bold">{item.foodname || item.itemName || item.name}</h2>
               <div className="flex items-center mt-2">
                 <div className="flex text-yellow-400">
                   {[...Array(5)].map((_, i) => (
@@ -407,7 +529,7 @@ const showItemAddedNotification = (item) => {
                   ))}
                 </div>
                 <span className="ml-2 text-white font-medium text-sm">
-                  {item.rating} ({item.reviewCount} reviews)
+                  {item.rating} ({item.reviewCount || 0} reviews)
                 </span>
               </div>
             </div>
@@ -419,14 +541,14 @@ const showItemAddedNotification = (item) => {
                 ₹{item.price.toFixed(2)}
               </span>
               <button
-                onClick={() => toggleFavorite(item.id)}
+                onClick={() => toggleFavorite(getItemKey(item))}
                 className={`p-2 rounded-full ${
-                  favorites.includes(item.id)
+                  favorites.includes(getItemKey(item))
                     ? "text-pink-500 bg-pink-100"
                     : "text-gray-400 bg-gray-100"
                 } transition-colors`}
               >
-                {favorites.includes(item.id) ? (
+                {favorites.includes(getItemKey(item)) ? (
                   <IoHeart className="h-6 w-6" />
                 ) : (
                   <IoHeartOutline className="h-6 w-6" />
@@ -436,7 +558,7 @@ const showItemAddedNotification = (item) => {
 
             <p className="text-gray-700 mb-6">{item.description}</p>
 
-            {item.allergies.length > 0 && (
+            {item.allergies?.length > 0 && (
               <div className="mb-6">
                 <h3 className="font-medium text-gray-900 mb-2">
                   Allergen Information
@@ -461,14 +583,14 @@ const showItemAddedNotification = (item) => {
                   <div
                     key={i}
                     className={`h-3 w-6 rounded-full ${
-                      i < item.spicyLevel ? "bg-red-500" : "bg-gray-200"
+                      i < Number(item.spiceLevel || 0) ? "bg-red-500" : "bg-gray-200"
                     }`}
                   />
                 ))}
                 <div className="ml-2 text-gray-600 text-sm">
                   {
                     ["Not Spicy", "Mild", "Medium", "Spicy", "Very Spicy"][
-                      item.spicyLevel
+                      Number(item.spiceLevel || 0)
                     ]
                   }
                 </div>
@@ -581,9 +703,17 @@ const showItemAddedNotification = (item) => {
           <div className="relative h-72 md:h-96">
             <div className="absolute inset-0">
               <img
-                src={restaurant.bgImage}
+                src={getRestaurantCoverImage()}
                 alt={restaurant.name || "Restaurant cover"}
                 className="w-full h-full object-cover"
+                onError={(e) =>
+                  withFallbackImage(
+                    e,
+                    `${resolvedRestaurantId || "restaurant"}-cover-fallback`,
+                    1400,
+                    900
+                  )
+                }
               />
               <div className="absolute inset-0 bg-gradient-to-b from-black/60 to-black/80"></div>
             </div>
@@ -601,9 +731,17 @@ const showItemAddedNotification = (item) => {
               <div className="flex items-center">
                 <div className="w-20 h-20 md:w-28 md:h-28 rounded-2xl overflow-hidden border-4 border-white shadow-xl transform -translate-y-4">
                   <img
-                    src={restaurant.logo}
+                    src={getRestaurantLogoImage()}
                     alt={`${restaurant.name || "Restaurant"} logo`}
                     className="w-full h-full object-cover"
+                    onError={(e) =>
+                      withFallbackImage(
+                        e,
+                        `${resolvedRestaurantId || "restaurant"}-logo-fallback`,
+                        300,
+                        300
+                      )
+                    }
                   />
                 </div>
                 <div className="ml-4 md:ml-6">
@@ -1001,25 +1139,37 @@ const showItemAddedNotification = (item) => {
 
                   return (
                     <div
-                      key={category.id}
-                      id={`category-${category.id}`}
+                      key={category.id || category.categoryName}
+                      id={`category-${category.id || category.categoryName}`}
                       className="scroll-mt-32"
                     >
                       <h2 className="text-2xl font-bold text-gray-900 mb-6">
                         {category.categoryName}
                       </h2>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredItems.map((item) => (
+                        {filteredItems.map((item) => {
+                          const itemKey = getItemKey(item);
+                          const normalizedItem = normalizeCartItem(item, category.categoryName);
+
+                          return (
                           <div
-                            key={item.id}
+                            key={itemKey}
                             className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow group cursor-pointer"
-                            onClick={() => setActiveItemModal(item)}
+                            onClick={() => setActiveItemModal(normalizedItem)}
                           >
                             <div className="relative h-48">
                               <img
-                                src={item.image}
+                                      src={getMenuItemImage(item, category.categoryName)}
                                 alt={item.itemName}
                                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                onError={(e) =>
+                                  withFallbackImage(
+                                    e,
+                                    `${getItemKey(item) || item.itemName || "card-item"}-card`,
+                                    700,
+                                    450
+                                  )
+                                }
                               />
                               {item.isPopular && (
                                 <div className="absolute top-2 left-2 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-full">
@@ -1029,15 +1179,15 @@ const showItemAddedNotification = (item) => {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  toggleFavorite(item.id);
+                                    toggleFavorite(itemKey);
                                 }}
                                 className={`absolute top-2 right-2 p-2 rounded-full ${
-                                  favorites.includes(item.id)
+                                  favorites.includes(itemKey)
                                     ? "bg-pink-500 text-white"
                                     : "bg-white/70 text-gray-600 hover:bg-white"
                                 } transition-colors`}
                               >
-                                {favorites.includes(item.id) ? (
+                                {favorites.includes(itemKey) ? (
                                   <IoHeart size={18} />
                                 ) : (
                                   <IoHeartOutline size={18} />
@@ -1066,7 +1216,7 @@ const showItemAddedNotification = (item) => {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    addToCart(item);
+                                    addToCart(normalizedItem);
                                   }}
                                   className="p-2 bg-indigo-100 text-indigo-600 rounded-full hover:bg-indigo-600 hover:text-white transition-colors ml-auto"
                                 >
@@ -1075,7 +1225,8 @@ const showItemAddedNotification = (item) => {
                               </div>
                             </div>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   );
@@ -1168,23 +1319,31 @@ const showItemAddedNotification = (item) => {
                       <div className="space-y-6">
                         {cart.map((item) => (
                           <div
-                            key={item.id}
+                            key={getItemKey(item)}
                             className="flex items-center bg-gray-50 rounded-xl p-4"
                           >
                             <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
                               <img
-                                src={item.image}
-                                alt={item.itemName}
+                                src={item.imageUrl || getMenuItemImage(item)}
+                                alt={item.foodname || item.itemName}
                                 className="w-full h-full object-cover"
+                                onError={(e) =>
+                                  withFallbackImage(
+                                    e,
+                                    `${getItemKey(item) || item.foodname || item.itemName || "cart-item"}-cart`,
+                                    300,
+                                    300
+                                  )
+                                }
                               />
                             </div>
                             <div className="ml-4 flex-1">
                               <div className="flex justify-between items-start">
                                 <h4 className="font-medium text-gray-900">
-                                  {item.itemName}
+                                  {item.foodname || item.itemName}
                                 </h4>
                                 <span className="font-bold text-indigo-600">
-                                  ₹{(item.price * item.quantity).toFixed(2)}
+                                  ₹{(Number(item.price || 0) * Number(item.quantity || 1)).toFixed(2)}
                                 </span>
                               </div>
                               <p className="text-gray-600 text-sm mt-1 line-clamp-1">
@@ -1192,7 +1351,7 @@ const showItemAddedNotification = (item) => {
                               </p>
                               <div className="flex items-center mt-3">
                                 <button
-                                  onClick={() => removeFromCart(item.id)}
+                                  onClick={() => removeFromCart(getItemKey(item))}
                                   className="p-1 bg-gray-200 text-gray-600 rounded-md hover:bg-gray-300 transition-colors"
                                 >
                                   <IoRemove size={16} />
