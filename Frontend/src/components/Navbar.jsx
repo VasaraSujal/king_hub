@@ -39,17 +39,17 @@ const Navbar = ({ cartItems = [] }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       className={`fixed w-full z-50 transition-all duration-300 ${
-        scrolled ? 'bg-white/90 backdrop-blur-md shadow-lg py-2' : 'bg-white py-4 shadow-md'
+        scrolled ? 'bg-white/90 backdrop-blur-md shadow-lg py-2 border-b border-blue-100/80' : 'bg-white py-4 shadow-md border-b border-blue-100/80'
       }`}
     >
       <div className="container mx-auto flex justify-between items-center px-4">
         {/* Logo */}
         <Link
           to="/"
-          className="text-2xl font-bold tracking-wider bg-gradient-to-r from-red-600 to-green-500 text-transparent bg-clip-text relative group"
+          className="text-2xl font-extrabold tracking-wide text-slate-800 relative group"
         >
-          FoodDelivery
-          <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-red-600 to-green-500 transition-all duration-300 group-hover:w-full"></span>
+          KingHub
+          <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-700 transition-all duration-300 group-hover:w-full"></span>
         </Link>
 
         {/* Desktop Menu */}
@@ -60,16 +60,16 @@ const Navbar = ({ cartItems = [] }) => {
                 to={item.path}
                 className="font-medium transition duration-300 py-2 px-1 relative group"
               >
-                <span className={`relative z-10 ${isActive(item.path) ? 'text-green-600' : 'text-gray-700'}`}>
+                <span className={`relative z-10 ${isActive(item.path) ? 'text-blue-800' : 'text-slate-700'}`}>
                   {item.label}
                 </span>
                 {isActive(item.path) ? (
                   <motion.span
                     layoutId="activeIndicator"
-                    className="absolute bottom-0 left-0 w-full h-0.5 bg-green-600"
+                    className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-800"
                   />
                 ) : (
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-green-600 transition-all duration-300 group-hover:w-full"></span>
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-800 transition-all duration-300 group-hover:w-full"></span>
                 )}
               </Link>
               {item.showBadge && cartItems && cartItems.length > 0 && (
@@ -91,7 +91,7 @@ const Navbar = ({ cartItems = [] }) => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="bg-gradient-to-r from-green-500 to-red-600 text-white px-6 py-2 rounded-full shadow-md hover:shadow-lg transition duration-300 cursor-pointer"
+                className="bg-blue-600 text-white px-6 py-2 rounded-full shadow-md hover:bg-blue-700 hover:shadow-lg transition duration-300 cursor-pointer"
               onClick={() => loginWithRedirect()}
             >
               Sign In
@@ -100,7 +100,7 @@ const Navbar = ({ cartItems = [] }) => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="bg-gradient-to-r from-green-500 to-red-600 text-white px-6 py-2 rounded-full shadow-md hover:shadow-lg transition duration-300 cursor-pointer"
+                className="bg-blue-600 text-white px-6 py-2 rounded-full shadow-md hover:bg-blue-700 hover:shadow-lg transition duration-300 cursor-pointer"
               onClick={() =>
                 logout({ logoutParams: { returnTo: window.location.origin } })
               }
@@ -113,7 +113,7 @@ const Navbar = ({ cartItems = [] }) => {
         {/* Mobile Menu Button */}
         <motion.button
           whileTap={{ scale: 0.9 }}
-          className="md:hidden text-gray-700 hover:text-green-600 focus:outline-none transition duration-300"
+          className="md:hidden text-slate-700 hover:text-blue-700 focus:outline-none transition duration-300"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         >
           <svg
@@ -158,7 +158,7 @@ const Navbar = ({ cartItems = [] }) => {
                     to={item.path}
                     className={`block py-2 px-4 rounded-lg transition duration-200 ${
                       isActive(item.path)
-                        ? 'bg-gradient-to-r from-green-50 to-green-100 text-green-600 font-medium'
+                        ? 'bg-blue-50 text-blue-700 font-medium'
                         : 'text-gray-700 hover:bg-gray-50'
                     }`}
                     onClick={() => setMobileMenuOpen(false)}
@@ -178,7 +178,7 @@ const Navbar = ({ cartItems = [] }) => {
             <div className="mt-6">
               {!isAuthenticated ? (
                 <button
-                  className="w-full bg-gradient-to-r from-green-500 to-red-600 text-white px-6 py-3 rounded-full shadow-md transition duration-300"
+                  className="w-full bg-blue-600 text-white px-6 py-3 rounded-full shadow-md hover:bg-blue-700 transition duration-300"
                   onClick={() => {
                     loginWithRedirect();
                     setMobileMenuOpen(false);
@@ -188,7 +188,7 @@ const Navbar = ({ cartItems = [] }) => {
                 </button>
               ) : (
                 <button
-                  className="w-full bg-gradient-to-r from-green-500 to-red-600 text-white px-6 py-3 rounded-full shadow-md transition duration-300"
+                  className="w-full bg-blue-600 text-white px-6 py-3 rounded-full shadow-md hover:bg-blue-700 transition duration-300"
                   onClick={() => {
                     logout({ logoutParams: { returnTo: window.location.origin } });
                     setMobileMenuOpen(false);
