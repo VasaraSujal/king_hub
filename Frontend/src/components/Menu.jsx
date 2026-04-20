@@ -10,6 +10,10 @@ import {
   ChevronDown,
   ArrowRight,
   Filter,
+  X,
+  Plus,
+  Minus,
+  Check,
 } from "lucide-react";
 
 const categories = [
@@ -22,6 +26,18 @@ const categories = [
   { name: "Punjabi Food", icon: "🍲" },
 ];
 
+// Customize options - these would ideally come from your API
+const customizeOptions = [
+  { id: 1, name: "Handmade Dough", price: 100 },
+  { id: 2, name: "Cheese Burst", price: 100 },
+  { id: 3, name: "Extra Cheese", price: 40 },
+  { id: 4, name: "Onion", price: 25 },
+  { id: 5, name: "Jelapino", price: 25 },
+  { id: 6, name: "Tomato", price: 25 },
+  { id: 7, name: "Paneer", price: 35 },
+  { id: 8, name: "Corn", price: 30 },
+];
+
 const Menu = ({ addToCart }) => {
   const [menuItems, setMenuItems] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -32,6 +48,32 @@ const Menu = ({ addToCart }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [favorites, setFavorites] = useState([]);
   const [sortBy, setSortBy] = useState("popularity");
+
+  // New state for customization modal
+  const [customizeModalOpen, setCustomizeModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [selectedAddOns, setSelectedAddOns] = useState([]);
+  const [totalCustomPrice, setTotalCustomPrice] = useState(0);
+
+  useEffect(() => {
+    if (!customizeModalOpen) return undefined;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        closeCustomizeModal();
+      }
+    };
+
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [customizeModalOpen]);
 
   const sizeMultipliers = { Small: 1, Medium: 1.2, Large: 1.5 };
 
@@ -95,12 +137,24 @@ const Menu = ({ addToCart }) => {
     setFilteredItems(
       sortItems(
         menuItems.filter((item) =>
-          item.foodname.toLowerCase().includes(searchTerm.toLowerCase())
+          item.foodname?.toLowerCase().includes(searchTerm.toLowerCase())
         ),
         sortBy
       )
     );
-  }, [searchTerm, sortBy]);
+  }, [searchTerm, sortBy, menuItems]);
+
+  // Calculate the total price including add-ons
+  useEffect(() => {
+    if (selectedItem) {
+      const basePrice = parseFloat(calculatePrice(selectedItem));
+      const addOnsTotal = selectedAddOns.reduce(
+        (sum, addon) => sum + addon.price,
+        0
+      );
+      setTotalCustomPrice(basePrice + addOnsTotal);
+    }
+  }, [selectedAddOns, selectedItem]);
 
   const handleSearch = () => {
     const lowerSearchTerm = searchTerm.toLowerCase();
@@ -112,7 +166,7 @@ const Menu = ({ addToCart }) => {
       setSelectedCategory(matchingCategory.name);
     } else {
       const filtered = menuItems.filter((item) =>
-        item.foodname.toLowerCase().includes(lowerSearchTerm)
+        item.foodname?.toLowerCase().includes(lowerSearchTerm)
       );
       setFilteredItems(sortItems(filtered, sortBy));
     }
@@ -138,7 +192,7 @@ const Menu = ({ addToCart }) => {
     setFilteredItems(
       sortItems(
         updatedItems.filter((item) =>
-          item.foodname.toLowerCase().includes(searchTerm.toLowerCase())
+          item.foodname?.toLowerCase().includes(searchTerm.toLowerCase())
         ),
         sortBy
       )
@@ -149,7 +203,27 @@ const Menu = ({ addToCart }) => {
     return (item.price * (sizeMultipliers[item.selectedSize] || 1)).toFixed(2);
   };
 
-  const handleAddToCart = (item) => {
+  const openCustomizeModal = (item) => {
+    setSelectedItem(item);
+    setSelectedAddOns([]);
+    setCustomizeModalOpen(true);
+  };
+
+  const closeCustomizeModal = () => {
+    setCustomizeModalOpen(false);
+    setSelectedItem(null);
+    setSelectedAddOns([]);
+  };
+
+  const toggleAddon = (addon) => {
+    if (selectedAddOns.some((item) => item.id === addon.id)) {
+      setSelectedAddOns(selectedAddOns.filter((item) => item.id !== addon.id));
+    } else {
+      setSelectedAddOns([...selectedAddOns, addon]);
+    }
+  };
+
+  const confirmAddToCart = () => {
     // Create a vibration animation on the cart icon
     const cartIcon = document.getElementById("cart-icon");
     if (cartIcon) {
@@ -159,8 +233,15 @@ const Menu = ({ addToCart }) => {
       }, 1000);
     }
 
-    addToCart(item);
-    toast.success(`${item.foodname} added to cart!`, {
+    // Create a new item with the selected add-ons
+    const customizedItem = {
+      ...selectedItem,
+      addOns: selectedAddOns,
+      totalPrice: totalCustomPrice,
+    };
+
+    addToCart(customizedItem);
+    toast.success(`${selectedItem.foodname} added to cart!`, {
       position: "top-right",
       autoClose: 2000,
       hideProgressBar: false,
@@ -168,6 +249,8 @@ const Menu = ({ addToCart }) => {
       pauseOnHover: true,
       draggable: true,
     });
+
+    closeCustomizeModal();
   };
 
   const toggleFavorite = (itemId) => {
@@ -190,6 +273,8 @@ const Menu = ({ addToCart }) => {
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-white font-sans relative">
       {/* Toast Container */}
       <ToastContainer />
+
+      {/* Search Bar */}
       <div className="fixed top-14 left-0 right-0 bg-white shadow-md z-50 p-4">
         <div className="container mx-auto">
           <div className="relative w-full max-w-xl mx-auto">
@@ -347,7 +432,7 @@ const Menu = ({ addToCart }) => {
                       <div className="relative">
                         <img
                           src={item.imageUrl}
-                          alt={item.foodname}
+                          alt={item.foodname || "Food item"}
                           className="w-full h-48 object-cover"
                           onError={(e) => {
                             e.target.src =
@@ -371,7 +456,7 @@ const Menu = ({ addToCart }) => {
                       <div className="p-4">
                         <div className="flex justify-between items-start">
                           <h3 className="font-semibold text-lg text-gray-800">
-                            {item.restaurantName}
+                            {item.foodname || item.restaurantName}
                           </h3>
                           <div className="flex items-center">
                             <Star
@@ -441,7 +526,7 @@ const Menu = ({ addToCart }) => {
                               ₹{calculatePrice(item)}
                             </span>
                             <button
-                              onClick={() => handleAddToCart(item)}
+                              onClick={() => openCustomizeModal(item)}
                               className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-2 rounded-lg hover:from-orange-600 hover:to-red-600 transition duration-300 flex items-center"
                             >
                               Add to Cart
@@ -463,19 +548,24 @@ const Menu = ({ addToCart }) => {
                       <div className="relative w-full sm:w-40 md:w-56">
                         <img
                           src={item.imageUrl}
-                          alt={item.foodname}
+                          alt={item.foodname || "Food item"}
                           className="w-full h-48 sm:h-full object-cover"
                           onError={(e) => {
-                            e.target.src = "https://via.placeholder.com/300x200?text=Food+Image";
+                            e.target.src =
+                              "https://via.placeholder.com/300x200?text=Food+Image";
                           }}
                         />
-                        <button 
+                        <button
                           onClick={() => toggleFavorite(item._id)}
                           className="absolute top-3 right-3 bg-white p-2 rounded-full shadow-md hover:bg-red-50 transition-colors"
                         >
-                          <Heart 
-                            size={20} 
-                            className={`${favorites.includes(item._id) ? "fill-red-500 text-red-500" : "text-gray-400"}`}
+                          <Heart
+                            size={20}
+                            className={`${
+                              favorites.includes(item._id)
+                                ? "fill-red-500 text-red-500"
+                                : "text-gray-400"
+                            }`}
                           />
                         </button>
                       </div>
@@ -484,39 +574,71 @@ const Menu = ({ addToCart }) => {
                           <div className="flex flex-col sm:flex-row justify-between">
                             <div>
                               <div className="flex items-start justify-between">
-                                <h3 className="font-semibold text-lg text-gray-800">{item.restaurantName}</h3>
+                                <h3 className="font-semibold text-lg text-gray-800">
+                                  {item.foodname || item.restaurantName}
+                                </h3>
                                 <div className="flex items-center sm:hidden">
-                                  <Star className="text-yellow-500 fill-yellow-500" size={16} />
-                                  <span className="text-sm font-medium ml-1 text-gray-700">{item.rating}</span>
+                                  <Star
+                                    className="text-yellow-500 fill-yellow-500"
+                                    size={16}
+                                  />
+                                  <span className="text-sm font-medium ml-1 text-gray-700">
+                                    {item.rating}
+                                  </span>
                                 </div>
                               </div>
-                              <p className="text-gray-500 text-sm mt-1 line-clamp-2">{item.description || "Delicious and freshly prepared just for you"}</p>
-                              
+                              <p className="text-gray-500 text-sm mt-1 line-clamp-2">
+                                {item.description ||
+                                  "Delicious and freshly prepared just for you"}
+                              </p>
+
                               <div className="mt-2 flex items-center text-sm text-gray-500">
                                 <span className="flex items-center mr-4">
-                                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                  <svg
+                                    className="w-4 h-4 mr-1"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth="2"
+                                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                    ></path>
                                   </svg>
                                   {item.preparationTime} mins
                                 </span>
                                 <div className="hidden sm:flex items-center">
-                                  <Star className="text-yellow-500 fill-yellow-500" size={16} />
-                                  <span className="text-sm font-medium ml-1 text-gray-700">{item.rating}</span>
-                                  <span className="text-xs text-gray-500 ml-1">({item.reviews})</span>
+                                  <Star
+                                    className="text-yellow-500 fill-yellow-500"
+                                    size={16}
+                                  />
+                                  <span className="text-sm font-medium ml-1 text-gray-700">
+                                    {item.rating}
+                                  </span>
+                                  <span className="text-xs text-gray-500 ml-1">
+                                    ({item.reviews})
+                                  </span>
                                 </div>
                               </div>
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="mt-4 flex flex-wrap items-center justify-between">
                           <div className="flex items-center space-x-2 mb-2 sm:mb-0">
-                            <span className="text-sm font-medium text-gray-600">Size:</span>
+                            <span className="text-sm font-medium text-gray-600">
+                              Size:
+                            </span>
                             <div className="flex space-x-2">
                               {["Small", "Medium", "Large"].map((size) => (
                                 <button
                                   key={size}
-                                  onClick={() => handleSizeChange(item._id, size)}
+                                  onClick={() =>
+                                    handleSizeChange(item._id, size)
+                                  }
                                   className={`px-2 py-1 text-xs rounded-md ${
                                     item.selectedSize === size
                                       ? "bg-orange-500 text-white"
@@ -528,13 +650,13 @@ const Menu = ({ addToCart }) => {
                               ))}
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center">
                             <span className="text-xl font-bold text-gray-800 mr-4">
-                              ${calculatePrice(item)}
+                              ₹{calculatePrice(item)}
                             </span>
                             <button
-                              onClick={() => handleAddToCart(item)}
+                              onClick={() => openCustomizeModal(item)}
                               className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-2 rounded-lg hover:from-orange-600 hover:to-red-600 transition duration-300 flex items-center"
                             >
                               Add to Cart
@@ -572,9 +694,12 @@ const Menu = ({ addToCart }) => {
 
       {/* Mobile Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center py-3 z-30 md:hidden">
-        <button className="flex flex-col items-center text-orange-500">
-          <Search size={20} />
-          <span className="text-xs mt-1">Search</span>
+        <button
+          onClick={toggleMobileMenu}
+          className="flex flex-col items-center text-orange-500"
+        >
+          <Filter size={20} />
+          <span className="text-xs mt-1">Categories</span>
         </button>
         <button className="flex flex-col items-center text-gray-500">
           <Heart size={20} />
@@ -590,6 +715,142 @@ const Menu = ({ addToCart }) => {
           </button>
         </div>
       </div>
+
+      {/* Customize Modal */}
+      {customizeModalOpen && selectedItem && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 backdrop-blur-md p-4"
+          onClick={closeCustomizeModal}
+        >
+          <div
+            className="bg-white/95 rounded-2xl shadow-2xl border border-blue-100/70 max-w-md w-full max-h-[90vh] overflow-y-auto transition-all duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 bg-white z-10 border-b border-gray-100 rounded-t-xl">
+              <div className="flex justify-between items-center p-4">
+                <h3 className="text-xl font-bold text-gray-800">
+                  Customize as per your taste
+                </h3>
+                <button
+                  onClick={closeCustomizeModal}
+                  className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X size={20} className="text-gray-500" />
+                </button>
+              </div>
+              <div className="px-4 pb-2">
+                <h4 className="text-lg font-medium">
+                  {selectedItem.foodname || selectedItem.restaurantName}
+                </h4>
+                <p className="text-sm text-gray-500">
+                  Size: {selectedItem.selectedSize}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4">
+              <div className="mb-4">
+                <h4 className="text-md font-semibold text-gray-700 mb-2">
+                  Add On ({selectedAddOns.length}/{customizeOptions.length})
+                </h4>
+                <div className="space-y-3">
+                  {customizeOptions.map((option) => {
+                    const isSelected = selectedAddOns.some(
+                      (item) => item.id === option.id
+                    );
+                    return (
+                      <div
+                        key={option.id}
+                        className="flex items-center justify-between border-b border-gray-100 pb-2"
+                      >
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            id={`addon-${option.id}`}
+                            checked={isSelected}
+                            onChange={() => toggleAddon(option)}
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <label
+                            htmlFor={`addon-${option.id}`}
+                            className="ml-2 text-sm font-medium text-gray-700"
+                          >
+                            {option.name}
+                          </label>
+                        </div>
+                        <div className="flex items-center">
+                          <span className="text-sm font-medium text-gray-700">
+                            ₹{option.price}
+                          </span>
+                          <button
+                            onClick={() => toggleAddon(option)}
+                            className={`ml-3 p-1 rounded-full ${
+                              isSelected
+                                ? "bg-blue-100 text-blue-600"
+                                : "bg-gray-100 text-gray-400"
+                            }`}
+                          >
+                            {isSelected ? (
+                              <Check size={16} className="text-blue-600" />
+                            ) : (
+                              <Plus size={16} className="text-gray-400" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="sticky bottom-0 bg-white border-t border-gray-100 p-4 rounded-b-xl">
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-sm font-medium text-gray-700">
+                  Base Price:
+                </span>
+                <span className="text-sm font-medium text-gray-700">
+                  ₹{calculatePrice(selectedItem)}
+                </span>
+              </div>
+
+              {selectedAddOns.length > 0 && (
+                <div className="mb-4">
+                  <h5 className="text-sm font-medium text-gray-700 mb-2">
+                    Add Ons:
+                  </h5>
+                  <div className="space-y-1">
+                    {selectedAddOns.map((addon) => (
+                      <div
+                        key={addon.id}
+                        className="flex justify-between text-sm"
+                      >
+                        <span className="text-gray-600">{addon.name}</span>
+                        <span className="text-gray-700">₹{addon.price}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-between items-center py-2 border-t border-gray-100">
+                <span className="text-lg font-bold text-gray-800">Total:</span>
+                <span className="text-lg font-bold text-gray-800">
+                  ₹{totalCustomPrice.toFixed(2)}
+                </span>
+              </div>
+
+              <button
+                onClick={confirmAddToCart}
+                className="w-full mt-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition duration-300 flex items-center justify-center"
+              >
+                Add to Cart
+                <ShoppingCart size={18} className="ml-2" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
