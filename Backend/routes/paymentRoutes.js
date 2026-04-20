@@ -1,9 +1,14 @@
 const express = require("express");
 const dotenv = require("dotenv");
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY); // Load Stripe secret key
 
 dotenv.config();
 const router = express.Router();
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
+const normalizePrice = (value) => {
+  const numericValue = Number(value || 0);
+  return Math.max(1, Math.round(numericValue * 100));
+};
 
 router.post("/create-checkout-session", async (req, res) => {
   try {
@@ -16,19 +21,20 @@ router.post("/create-checkout-session", async (req, res) => {
       return res.status(400).json({ error: "Cart is empty or invalid" });
     }
 
-    // Transform cart items into Stripe line items
-    const lineItems = [
-      {
-          price_data: {
-              currency: "usd",
-              product_data: {
-                  name: "Product Name",
-              },
-              unit_amount: 1000,
-          },
-          quantity: 1,
+    const lineItems = items.map((item) => ({
+      price_data: {
+        currency: "inr",
+        product_data: {
+          name: item.name || item.foodname || item.itemName || "Food Item",
+        },
+        unit_amount: normalizePrice(item.price),
       },
-  ];
+      quantity: Number(item.quantity || 1),
+    }));
+
+    if (lineItems.length === 0) {
+      return res.status(400).json({ error: "Cart is empty or invalid" });
+    }
 
     console.log("✅ Line Items Sent to Stripe:", JSON.stringify(lineItems, null, 2));
 
@@ -37,8 +43,8 @@ router.post("/create-checkout-session", async (req, res) => {
       payment_method_types: ["card"],
       line_items: lineItems,
       mode: "payment",
-      success_url: "https://kinghub-1.netlify.app/success",
-      cancel_url: "https://kinghub-1.netlify.app/cancel",
+      success_url: "http://localhost:5173/success",
+      cancel_url: "http://localhost:5173/cancel",
     });
 
     console.log("✅ Session Created Successfully:", session.url);
