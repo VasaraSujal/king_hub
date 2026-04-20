@@ -6,6 +6,7 @@ const SuccessPage = () => {
   const [orderNumber, setOrderNumber] = useState('');
   const [isCopied, setIsCopied] = useState(false);
   const location = useLocation();
+  const getItemName = (item) => item.foodname || item.itemName || item.name || 'Food Item';
   
   // Get cart data from route state or local storage as fallback
   const [cartItems, setCartItems] = useState([]);
@@ -129,8 +130,8 @@ const SuccessPage = () => {
             {cartItems.length > 0 ? (
               cartItems.map((item, index) => (
                 <div key={index} className="flex justify-between text-gray-600">
-                  <span>{item.foodname} × {item.quantity || 1}</span>
-                  <span>₹{(item.price * (item.quantity || 1)).toFixed(2)}</span>
+                  <span>{getItemName(item)} × {item.quantity || 1}</span>
+                  <span>₹{(Number(item.price || 0) * (item.quantity || 1)).toFixed(2)}</span>
                 </div>
               ))
             ) : (
