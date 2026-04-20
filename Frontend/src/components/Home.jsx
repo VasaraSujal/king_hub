@@ -1,9 +1,13 @@
-// src/components/HomePage.jsx
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Footer from './Footer';
-import PopularLocalities from './Location';
-import { FaArrowRight } from 'react-icons/fa';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import Footer from "./Footer";
+import PopularLocalities from "./Location";
+
+const reveal = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.45 } },
+};
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -12,276 +16,266 @@ const HomePage = () => {
 
   const faqs = [
     {
-      question: 'How do I place an order?',
-      answer: 'Browse through our restaurant menus, add items to your cart, and proceed to checkout. Your food will be delivered to your doorstep.',
+      question: "How do I place an order?",
+      answer:
+        "Browse restaurants, add items to your cart, and complete checkout. We will handle the rest.",
     },
     {
-      question: 'What payment methods are accepted?',
-      answer: 'We accept all major credit/debit cards, UPI, and cash on delivery.',
+      question: "What payment methods are accepted?",
+      answer: "All major cards, UPI, and cash on delivery are supported.",
     },
     {
-      question: 'Can I track my order?',
-      answer: 'Yes, you can track your order in real-time using the tracking feature in the app.',
+      question: "Can I track my order?",
+      answer: "Yes, live order status is available once your order is confirmed.",
     },
     {
-      question: 'What if my food arrives late?',
-      answer: 'We strive to deliver on time, but if there’s a delay, please contact our support team for assistance.',
-    },
-    {
-      question: 'Do you have vegetarian options?',
-      answer: 'Yes, most of our partner restaurants offer vegetarian dishes. You can filter by dietary preferences.',
+      question: "Do you have vegetarian options?",
+      answer:
+        "Yes, partner restaurants include a wide selection of vegetarian dishes.",
     },
   ];
 
-  // Handler for "Order Now" button
+  const featured = [
+    {
+      name: "Burger King",
+      meta: "Fast Food • 130 INR • 4.5",
+      image:
+        "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=1200&q=80",
+    },
+    {
+      name: "Pizza Hut",
+      meta: "Italian • 140 INR • 4.7",
+      image:
+        "https://images.unsplash.com/photo-1548365328-9f547fb0953f?auto=format&fit=crop&w=1200&q=80",
+    },
+    {
+      name: "Sushi House",
+      meta: "Japanese • 150 INR • 4.8",
+      image:
+        "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=1200&q=80",
+    },
+  ];
+
+  const steps = [
+    "Choose your restaurant",
+    "Add favorite items",
+    "Checkout securely",
+    "Track and enjoy delivery",
+  ];
+
+  const testimonials = [
+    {
+      name: "Aarav",
+      text: "Smooth ordering, fast delivery, and food quality is always reliable.",
+    },
+    {
+      name: "Nisha",
+      text: "The interface is clean and I can reorder in seconds.",
+    },
+    {
+      name: "Rohit",
+      text: "Best local delivery experience I have used so far.",
+    },
+  ];
+
+  const trustHighlights = [
+    { title: "On-time Delivery", value: "96%", detail: "Average delivery ETA met across key zones" },
+    { title: "Repeat Customers", value: "68%", detail: "Users who place more than 3 orders monthly" },
+    { title: "Partner Restaurants", value: "500+", detail: "Verified kitchens and top-rated outlets" },
+    { title: "Support Response", value: "<5 min", detail: "Median first response on live support" },
+  ];
+
+  const appFeatures = [
+    {
+      title: "Smart Restaurant Discovery",
+      description:
+        "Find relevant options quickly with cuisine filters, ratings, and location-based suggestions.",
+    },
+    {
+      title: "Transparent Billing",
+      description:
+        "Clear pricing with subtotal, delivery fee, taxes, and offers shown before payment.",
+    },
+    {
+      title: "Reliable Delivery Tracking",
+      description:
+        "Track every order stage from kitchen confirmation to rider dispatch and doorstep delivery.",
+    },
+  ];
+
   const handleOrderNow = () => {
     setLoading(true);
-    setTimeout(() => {
-      navigate('/restaurants');
-    }, 1500);
-  };
-
-  const handleExploreMenu = () => {
-    navigate('/menu');
+    setTimeout(() => navigate("/restaurants"), 600);
   };
 
   return (
-    <div className="max-screen bg-gradient-to-br from-red-500 to-green-500 font-sans pt-20">
-      {/* Hero Section */}
-      <section className="pt-20 pb-16 px-4 sm:px-8 lg:px-16">
-        <div className="max-w-6xl mx-auto text-center">
-          <h1 className="text-5xl sm:text-6xl font-bold text-white mb-6">
-            Delicious Food Delivered to Your Doorstep
-          </h1>
-          <p className="text-lg sm:text-xl text-gray-100 mb-8">
-            Enjoy your favorite meals from top-rated restaurants near you.
-          </p>
-          <div className="flex justify-center space-x-4">
-            <button
-              onClick={handleOrderNow}
-              className="bg-white text-red-500 font-semibold py-3 px-8 rounded-full hover:bg-opacity-90 transition duration-300 cursor-pointer"
+    <div className="pt-20 text-slate-800">
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-100/80 via-white to-blue-200/60" />
+        <div className="relative container mx-auto px-6 pt-16 pb-14 md:pt-20 md:pb-20">
+          <div className="grid grid-cols-1 lg:grid-cols-2 items-center gap-10">
+            <motion.div initial="hidden" animate="visible" variants={reveal} className="max-w-3xl">
+              <span className="inline-flex rounded-full bg-blue-100 text-blue-700 px-4 py-1.5 text-sm font-semibold">
+                Food delivery, simplified
+              </span>
+              <h1 className="mt-6 text-4xl md:text-6xl font-extrabold leading-tight text-slate-900">
+                Delicious meals delivered with speed and consistency.
+              </h1>
+              <p className="mt-5 text-lg text-slate-600 max-w-2xl leading-relaxed">
+                Discover trusted restaurants, order in a few taps, and get your food delivered hot and on time.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <button
+                  onClick={handleOrderNow}
+                  className="rounded-xl bg-blue-600 text-white px-6 py-3 font-semibold hover:bg-blue-700"
+                >
+                  {loading ? "Opening..." : "Order Now"}
+                </button>
+                <button
+                  onClick={() => navigate("/menu")}
+                  className="rounded-xl border border-blue-200 bg-white px-6 py-3 font-semibold text-blue-700 hover:bg-blue-50"
+                >
+                  Explore Menu
+                </button>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: 28 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+              className="w-full"
             >
-              Order Now
-            </button>
-            <button
-              onClick={handleExploreMenu}
-              className="border-2 border-white text-white font-semibold py-3 px-8 rounded-full hover:bg-white hover:text-red-500 transition duration-300 cursor-pointer"
-            >
-              Explore Menu
-            </button>
+              <div className="rounded-3xl overflow-hidden border border-blue-100 bg-white shadow-xl">
+                <img
+                  src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1400&q=80"
+                  alt="Delicious food platter"
+                  className="w-full h-[280px] md:h-[420px] object-cover"
+                />
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>
 
-      {/* Featured Restaurants Section */}
-      <section className="py-16 px-4 sm:px-8 lg:px-16 bg-gray-100">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-4xl font-bold text-gray-900 text-center mb-12">
-            Featured Restaurants
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                name: "Burger King",
-                cuisine: "Fast Food",
-                price: "130 ₹",
-                rating: "4.5 (1.2k)",
-                image:
-                  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQjjuDvUyzIa7Dkjeg1yF4Lf_tcIGvX7TZG9w&s",
-                route: "/restaurants/burgerking",
-              },
-              {
-                name: "Pizza Hut",
-                cuisine: "Italian",
-                price: "140 ₹",
-                rating: "4.7 (2.5k)",
-                image:
-                  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSpcC3Vf4npJJY8DUHyxgsO6FaVP7q1ARnGew&s",
-                route: "/restaurants/pizzahut",
-              },
-              {
-                name: "Sushi House",
-                cuisine: "Japanese",
-                price: "150 ₹",
-                rating: "4.8 (3.1k)",
-                image:
-                  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ9F5zLShmIbSxiDN2omETBOXksWQQ4CbyYRQ&s",
-                route: "/restaurants/sushihouse",
-              },
-            ].map((restaurant, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-lg overflow-hidden shadow-lg transform transition duration-300 hover:scale-105 hover:shadow-2xl"
-              >
-                <div className="relative">
-                  <img
-                    src={restaurant.image}
-                    alt={restaurant.name}
-                    className="w-full h-48 object-cover"
-                  />
-                  <div
-                    className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300 cursor-pointer"
-                    onClick={() => navigate(restaurant.route)}
-                  >
-                    <span className="text-white font-semibold text-lg">View More</span>
-                  </div>
-                </div>
-                <div className="p-6 text-center">
-                  <h3 className="text-2xl font-semibold text-gray-900 mb-2">
-                    {restaurant.name}
-                  </h3>
-                  <p className="text-gray-700">
-                    {restaurant.cuisine} • {restaurant.price} • ⭐ {restaurant.rating}
-                  </p>
-                </div>
+      <section className="container mx-auto px-6 py-14">
+        <h2 className="text-3xl font-bold text-slate-900 text-center">Featured Restaurants</h2>
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+          {featured.map((item) => (
+            <article key={item.name} className="surface-panel overflow-hidden">
+              <img src={item.image} alt={item.name} className="h-44 w-full object-cover" />
+              <div className="p-5">
+                <h3 className="text-xl font-bold text-slate-900">{item.name}</h3>
+                <p className="mt-1 text-slate-600">{item.meta}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="container mx-auto px-6 pb-14">
+        <div className="surface-panel p-7 md:p-10">
+          <h2 className="text-3xl font-bold text-slate-900 text-center">Why Customers Trust King Hub</h2>
+          <p className="mt-3 text-center text-slate-600 max-w-3xl mx-auto">
+            We focus on dependable operations and a transparent ordering flow so users can order confidently any day.
+          </p>
+          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {trustHighlights.map((item) => (
+              <div key={item.title} className="rounded-xl border border-blue-100 bg-blue-50/40 p-5">
+                <p className="text-2xl font-extrabold text-slate-900">{item.value}</p>
+                <p className="mt-1 font-semibold text-blue-700">{item.title}</p>
+                <p className="mt-2 text-sm text-slate-600 leading-relaxed">{item.detail}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-
-      {/* How It Works Section */}
-      <section className="py-16 px-4 sm:px-8 lg:px-16 bg-white bg-opacity-10">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-4xl font-bold text-black text-center mb-12">
-            How It Works
-          </h2>
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-8 relative">
-            {/* Step 1 */}
-            <div className="flex flex-col items-center relative">
-              <div className="w-16 h-16 bg-green-600 text-white rounded-full flex items-center justify-center text-2xl font-bold">
-                1
+      <section className="container mx-auto px-6 pb-14">
+        <div className="rounded-2xl border border-blue-100 bg-white p-7 md:p-10">
+          <h2 className="text-3xl font-bold text-slate-900 text-center">How It Works</h2>
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-5">
+            {steps.map((step, idx) => (
+              <div key={step} className="rounded-xl bg-blue-50/50 border border-blue-100 p-5">
+                <div className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">
+                  {idx + 1}
+                </div>
+                <p className="mt-3 font-semibold text-slate-800">{step}</p>
               </div>
-              <h3 className="text-xl font-semibold text-black mt-4">Choose Your Meal</h3>
-              <p className="text-black text-center">Browse through our extensive menu options.</p>
-            </div>
-
-            {/* Arrow between steps */}
-            <div className="hidden lg:block">
-              <FaArrowRight className="text-green-600 text-4xl" />
-            </div>
-
-            {/* Step 2 */}
-            <div className="flex flex-col items-center relative">
-              <div className="w-16 h-16 bg-green-600 text-white rounded-full flex items-center justify-center text-2xl font-bold">
-                2
-              </div>
-              <h3 className="text-xl font-semibold text-black mt-4">Place Your Order</h3>
-              <p className="text-black text-center">Select your favorites and check out securely.</p>
-            </div>
-
-            <div className="hidden lg:block">
-              <FaArrowRight className="text-green-600 text-4xl" />
-            </div>
-
-            {/* Step 3 */}
-            <div className="flex flex-col items-center relative">
-              <div className="w-16 h-16 bg-green-600 text-white rounded-full flex items-center justify-center text-2xl font-bold">
-                3
-              </div>
-              <h3 className="text-xl font-semibold text-black mt-4">Track Your Order</h3>
-              <p className="text-black text-center">Follow your order in real-time.</p>
-            </div>
-
-            <div className="hidden lg:block">
-              <FaArrowRight className="text-green-600 text-4xl" />
-            </div>
-
-            {/* Step 4 */}
-            <div className="flex flex-col items-center">
-              <div className="w-16 h-16 bg-green-600 text-white rounded-full flex items-center justify-center text-2xl font-bold">
-                4
-              </div>
-              <h3 className="text-xl font-semibold text-black mt-4">Enjoy Your Food</h3>
-              <p className="text-black text-center">Receive and enjoy your delicious meal.</p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section className="py-16 px-4 sm:px-8 lg:px-16">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-4xl font-bold text-white text-center mb-12">
-            What Our Customers Say
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Testimonial 1 */}
-            <div className="bg-white bg-opacity-20 rounded-lg p-6 text-center shadow-lg transform transition duration-300 hover:scale-105 hover:shadow-2xl">
-              <p className="text-black italic mb-4">
-                "The food was amazing, and the delivery was super fast!"
-              </p>
-              <div className="flex items-center justify-center mt-4">
-                <img
-                  src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSORyQzNiEfMRaKvWyir-CcQ6EX7pMFfuhCRA&s"
-                  alt="John Doe"
-                  className="w-10 h-10 rounded-full mr-3"
-                />
-                <p className="font-semibold text-black">John Doe</p>
-              </div>
-            </div>
-            {/* Testimonial 2 */}
-            <div className="bg-white bg-opacity-20 rounded-lg p-6 text-center shadow-lg transform transition duration-300 hover:scale-105 hover:shadow-2xl">
-              <p className="text-black italic mb-4">
-                "I love the variety of options available. Highly recommend!"
-              </p>
-              <div className="flex items-center justify-center mt-4">
-                <img
-                  src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTGAvN-aze1APwMZW6MErdau1RVDwA9aD_9_Q&s"
-                  alt="Jane Smith"
-                  className="w-10 h-10 rounded-full mr-3"
-                />
-                <p className="font-semibold text-black">Jane Smith</p>
-              </div>
-            </div>
-            {/* Testimonial 3 */}
-            <div className="bg-white bg-opacity-20 rounded-lg p-6 text-center shadow-lg transform transition duration-300 hover:scale-105 hover:shadow-2xl">
-              <p className="text-black italic mb-4">
-                "Best food delivery service I've ever used. Keep it up!"
-              </p>
-              <div className="flex items-center justify-center mt-4">
-                <img
-                  src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSYrwV_UKE0oghzxOIgNQeBsv3EdnIK044fnw&s"
-                  alt="Alex Johnson"
-                  className="w-10 h-10 rounded-full mr-3"
-                />
-                <p className="font-semibold text-black">Alex Johnson</p>
-              </div>
-            </div>
-          </div>
+      <section className="container mx-auto px-6 pb-14">
+        <div className="grid lg:grid-cols-2 gap-6">
+          <article className="surface-panel p-7">
+            <h3 className="text-2xl font-bold text-slate-900">Service Coverage and Delivery Zones</h3>
+            <p className="mt-3 text-slate-600 leading-relaxed">
+              King Hub supports high-demand residential and commercial zones with optimized rider assignment. If a
+              location falls outside a delivery radius, nearby alternatives are suggested automatically.
+            </p>
+            <p className="mt-3 text-slate-600 leading-relaxed">
+              We continuously expand to new areas based on demand, partner availability, and fulfillment quality to
+              maintain consistent delivery standards.
+            </p>
+          </article>
+          <article className="surface-panel p-7">
+            <h3 className="text-2xl font-bold text-slate-900">Order Safety and Quality Standards</h3>
+            <p className="mt-3 text-slate-600 leading-relaxed">
+              Partner restaurants follow hygiene and packing guidelines for better food quality in transit. Orders are
+              routed with minimal hand-off to reduce delays and maintain freshness.
+            </p>
+            <p className="mt-3 text-slate-600 leading-relaxed">
+              In case of issue, users can raise support directly from order flow for faster and contextual resolution.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section className="container mx-auto px-6 pb-14">
+        <h2 className="text-3xl font-bold text-slate-900 text-center">Product Features</h2>
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+          {appFeatures.map((feature) => (
+            <article key={feature.title} className="surface-panel p-6">
+              <h3 className="text-xl font-bold text-slate-900">{feature.title}</h3>
+              <p className="mt-3 text-slate-600 leading-relaxed">{feature.description}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="container mx-auto px-6 pb-14">
+        <h2 className="text-3xl font-bold text-slate-900 text-center">What Customers Say</h2>
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+          {testimonials.map((item) => (
+            <blockquote key={item.name} className="surface-panel p-6">
+              <p className="text-slate-600">"{item.text}"</p>
+              <footer className="mt-4 text-sm font-semibold text-blue-700">{item.name}</footer>
+            </blockquote>
+          ))}
         </div>
       </section>
 
       <PopularLocalities />
 
-      {/* Footer Section */}
-      <section className="py-12 bg-white">
-        <div className="max-w-6xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-8 text-gray-800">
-            Frequently Asked Questions
-          </h2>
-          <div className="space-y-4">
-            {faqs.map((faq, index) => (
-              <div
-                key={index}
-                className="bg-gray-50 rounded-lg shadow-md overflow-hidden transition-shadow duration-300 ease-in-out hover:shadow-lg"
+      <section className="container mx-auto px-6 py-14">
+        <h2 className="text-3xl font-bold text-slate-900 text-center">Frequently Asked Questions</h2>
+        <div className="mt-8 space-y-3 max-w-3xl mx-auto">
+          {faqs.map((faq, index) => (
+            <div key={faq.question} className="surface-panel overflow-hidden">
+              <button
+                onClick={() => setOpenFAQIndex(openFAQIndex === index ? null : index)}
+                className="w-full px-5 py-4 text-left flex justify-between items-center"
               >
-                <button
-                  onClick={() => setOpenFAQIndex(openFAQIndex === index ? null : index)}
-                  className="w-full text-left px-6 py-5 focus:outline-none flex justify-between items-center bg-gray-100 hover:bg-gray-200 transition-colors duration-300 ease-in-out"
-                >
-                  <span className="font-semibold text-lg text-gray-800">{faq.question}</span>
-                  <span className="text-xl text-gray-600">{openFAQIndex === index ? '-' : '+'}</span>
-                </button>
-                {openFAQIndex === index && (
-                  <div className="bg-white p-6 rounded-b-md border border-t-0 border-gray-300">
-                    <p className="text-gray-700">{faq.answer}</p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+                <span className="font-semibold text-slate-800">{faq.question}</span>
+                <span className="text-blue-700 text-lg">{openFAQIndex === index ? "-" : "+"}</span>
+              </button>
+              {openFAQIndex === index && (
+                <div className="px-5 pb-5 text-slate-600">{faq.answer}</div>
+              )}
+            </div>
+          ))}
         </div>
       </section>
 
