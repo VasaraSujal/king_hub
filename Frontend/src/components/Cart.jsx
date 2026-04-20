@@ -3,6 +3,9 @@ import { loadStripe } from "@stripe/stripe-js";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "https://king-hub-1.onrender.com";
+
 const CartPage = ({
   cartItems = [],
   updateQuantity,
@@ -20,6 +23,10 @@ const CartPage = ({
   const [showConfirmRemove, setShowConfirmRemove] = useState(null);
   const navigate = useNavigate();
 
+  const getItemKey = (item) => item?._id || item?.id || item?.itemId || item?.foodname;
+  const getItemName = (item) => item?.foodname || item?.itemName || item?.name || "Food Item";
+  const getItemImage = (item) => item?.imageUrl || item?.image || item?.bgImage || "https://via.placeholder.com/300x200?text=Food+Image";
+
   // Load saved addresses from localStorage on component mount
   useEffect(() => {
     const addresses = JSON.parse(
@@ -36,7 +43,7 @@ const CartPage = ({
     }
 
     const total = cartItems.reduce((sum, item) => {
-      return sum + item.price * item.quantity;
+      return sum + Number(item.price || 0) * Number(item.quantity || 1);
     }, 0);
 
     return total;
@@ -108,15 +115,16 @@ const CartPage = ({
 
     try {
       const response = await fetch(
-        "https://king-hub-1.onrender.com/api/payment/create-checkout-session",
+        `${API_BASE_URL}/api/payment/create-checkout-session`,
         {
           method: "POST",
           headers: headers,
           body: JSON.stringify({
             items: cartItems.map((item) => ({
-              name: item.foodname,
-              price: item.price,
-              quantity: item.quantity,
+                name: getItemName(item),
+                price: Number(item.price || 0),
+                quantity: Number(item.quantity || 1),
+                imageUrl: getItemImage(item),
             })),
             deliveryAddress: address,
             deliveryOption: deliveryOption,
@@ -225,7 +233,7 @@ const CartPage = ({
               <>
                 {cartItems.map((item, index) => (
                   <motion.div
-                    key={item._id}
+                    key={getItemKey(item) || index}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.1 }}
@@ -233,15 +241,15 @@ const CartPage = ({
                   >
                     <div className="flex flex-col sm:flex-row items-center">
                       <img
-                        src={item.imageUrl}
-                        alt={item.foodname}
+                        src={getItemImage(item)}
+                        alt={getItemName(item)}
                         className="w-32 h-32 object-cover rounded-lg mb-4 sm:mb-0 hover:scale-105 transition-transform duration-300"
                       />
                       <div className="sm:ml-6 flex-1">
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start">
                           <div>
                             <p className="text-xl font-semibold text-gray-900 mb-1">
-                              {item.foodname}
+                              {getItemName(item)}
                             </p>
                             {item.description && (
                               <p className="text-sm text-gray-500 mb-2">
@@ -250,15 +258,13 @@ const CartPage = ({
                             )}
                           </div>
                           <p className="text-lg font-medium text-gray-800 mb-4 sm:mb-0">
-                            ₹{item.price.toFixed(2)}
+                            ₹{Number(item.price || 0).toFixed(2)}
                           </p>
                         </div>
                         <div className="flex flex-col sm:flex-row justify-between items-center mt-4">
                           <div className="flex items-center mb-4 sm:mb-0">
                             <button
-                              onClick={() =>
-                                updateQuantity(item._id, "subtract")
-                              }
+                              onClick={() => updateQuantity(getItemKey(item), "subtract")}
                               className="bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-lg focus:outline-none transition-colors duration-200 flex items-center justify-center"
                             >
                               -
@@ -267,7 +273,7 @@ const CartPage = ({
                               {item.quantity}
                             </span>
                             <button
-                              onClick={() => updateQuantity(item._id, "add")}
+                              onClick={() => updateQuantity(getItemKey(item), "add")}
                               className="bg-green-500 hover:bg-green-600 text-white w-8 h-8 rounded-lg focus:outline-none transition-colors duration-200 flex items-center justify-center"
                             >
                               +
@@ -275,18 +281,18 @@ const CartPage = ({
                           </div>
                           <div className="flex items-center space-x-2">
                             <span className="text-gray-700 font-medium">
-                              Total: ₹{(item.price * item.quantity).toFixed(2)}
+                              Total: ₹{(Number(item.price || 0) * Number(item.quantity || 1)).toFixed(2)}
                             </span>
-                            {showConfirmRemove === item._id ? (
+                            {showConfirmRemove === getItemKey(item) ? (
                               <button
-                                onClick={() => handleRemoveItem(item._id)}
+                                onClick={() => handleRemoveItem(getItemKey(item))}
                                 className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg focus:outline-none transition-colors duration-200"
                               >
                                 Confirm
                               </button>
                             ) : (
                               <button
-                                onClick={() => handleRemoveItem(item._id)}
+                                onClick={() => handleRemoveItem(getItemKey(item))}
                                 className="text-red-500 hover:text-red-700 focus:outline-none transition-colors duration-200"
                               >
                                 <svg
@@ -336,7 +342,7 @@ const CartPage = ({
                     <button
                       onClick={() => {
                         if (window.confirm("Clear all items from cart?")) {
-                          cartItems.forEach((item) => removeFromCart(item._id));
+                          cartItems.forEach((item) => removeFromCart(getItemKey(item)));
                         }
                       }}
                       className="text-red-500 hover:text-red-700 flex items-center"
