@@ -9,6 +9,7 @@ import Cart from './components/Cart';
 import About from './components/About';
 import Offer from './components/Offer';
 import Hier from './components/Hier.jsx';
+import Wishlist from './components/Wishlist.jsx';
 import Authuser from './components/Authuser.jsx';
 import { useAuth0 } from '@auth0/auth0-react';
 import RestaurantDetails from "./components/RestaurantDetails";
@@ -19,9 +20,47 @@ import CancelPage from "./components/CancelPage";
 function App() {
 
   const { isAuthenticated } = useAuth0();
-  const [cartItems, setCartItems] = useState(() => {
+  const [cartItems, setCartItems] = useState([]);
+  const createWishlistImageDataUrl = (label) => {
+    const safeLabel = (label || 'Food Item').toString().slice(0, 24);
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#f8c9d4" />
+            <stop offset="100%" stop-color="#ffd7a8" />
+          </linearGradient>
+        </defs>
+        <rect width="900" height="600" rx="36" fill="url(#g)" />
+        <circle cx="150" cy="120" r="70" fill="rgba(255,255,255,0.28)" />
+        <circle cx="760" cy="480" r="120" fill="rgba(255,255,255,0.18)" />
+        <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle"
+          font-family="Arial, sans-serif" font-size="46" font-weight="700" fill="#1f2937">
+          ${safeLabel.replace(/[&<>]/g, '')}
+        </text>
+      </svg>`;
+    return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+  };
+
+  const isGeneratedImageUrl = (url) =>
+    typeof url === 'string' && (url.includes('loremflickr.com') || url.includes('picsum.photos') || url.includes('via.placeholder.com'));
+
+  const [wishlistItems, setWishlistItems] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('cartItems') || '[]');
+      const savedItems = JSON.parse(localStorage.getItem('wishlistItems') || '[]');
+      return Array.isArray(savedItems)
+        ? savedItems.map((item) => {
+            const displayName = item?.foodname || item?.itemName || item?.name || 'Food Item';
+            const imageUrl = item?.imageUrl || item?.image || item?.bgImage;
+
+            return {
+              ...item,
+              imageUrl: imageUrl && !isGeneratedImageUrl(imageUrl)
+                ? imageUrl
+                : createWishlistImageDataUrl(displayName),
+            };
+          })
+        : [];
     } catch (error) {
       return [];
     }
@@ -30,6 +69,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem('cartItems', JSON.stringify(cartItems));
   }, [cartItems]);
+
+  useEffect(() => {
+    localStorage.setItem('wishlistItems', JSON.stringify(wishlistItems));
+  }, [wishlistItems]);
 
   const getItemId = (item) => item?._id || item?.id || item?.itemId || item?.foodname;
 
@@ -50,6 +93,24 @@ function App() {
     };
   };
 
+  const normalizeWishlistItem = (item) => {
+    const displayName = item?.foodname || item?.itemName || item?.name || 'Food Item';
+    const sourceImage = item?.imageUrl || item?.image || item?.bgImage;
+
+    return {
+      ...item,
+      _id: getItemId(item),
+      id: item?.id || item?._id || item?.itemId || item?.foodname || item?.itemName || item?.name,
+      foodname: displayName,
+      itemName: item?.itemName || displayName,
+      imageUrl: sourceImage && !isGeneratedImageUrl(sourceImage)
+        ? sourceImage
+        : createWishlistImageDataUrl(displayName),
+      price: Number(item?.price ?? item?.totalPrice ?? 0),
+      description: item?.description || '',
+    };
+  };
+
   const addToCart = (item) => {
     const normalizedItem = normalizeCartItem(item);
 
@@ -65,6 +126,26 @@ function App() {
       return [...prev, normalizedItem];
     });
   };
+
+  const toggleWishlist = (item) => {
+    const normalizedItem = normalizeWishlistItem(item);
+    const itemId = getItemId(normalizedItem);
+
+    const isAlreadyWishlisted = wishlistItems.some(
+      (wishlistedItem) => getItemId(wishlistedItem) === itemId
+    );
+
+    setWishlistItems((prev) =>
+      isAlreadyWishlisted
+        ? prev.filter((wishlistedItem) => getItemId(wishlistedItem) !== itemId)
+        : [...prev, normalizedItem]
+    );
+
+    return !isAlreadyWishlisted;
+  };
+
+  const isWishlisted = (itemId) =>
+    wishlistItems.some((wishlistedItem) => getItemId(wishlistedItem) === itemId);
 
   const removeFromCart = (itemId) => {
     setCartItems((prev) => prev.filter((item) => getItemId(item) !== itemId));
@@ -98,20 +179,22 @@ function App() {
     <Router>
       <ScrollToTop />
       {isAuthenticated && <Authuser />}
-      <Navbar cartItems={cartItems} />
+      <Navbar cartItems={cartItems} wishlistItems={wishlistItems} />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path ="/footer" element ={<Footer/>}/>
         <Route path="/restaurants" element={<Restaurant />} />
-        <Route path="/restaurants/:id" element={<RestaurantDetails cartItems={cartItems} addToCart={addToCart} removeFromCart={removeFromCart} updateQuantity={updateQuantity} />} />
-        <Route path="/menu" element={<Menu addToCart={addToCart} />} />
+        <Route path="/restaurants/:id" element={<RestaurantDetails cartItems={cartItems} wishlistItems={wishlistItems} addToCart={addToCart} toggleWishlist={toggleWishlist} isWishlisted={isWishlisted} removeFromCart={removeFromCart} updateQuantity={updateQuantity} />} />
+        <Route path="/menu" element={<Menu addToCart={addToCart} wishlistItems={wishlistItems} toggleWishlist={toggleWishlist} isWishlisted={isWishlisted} />} />
         <Route path="/about" element={<About />} />
         <Route path="/offer" element={<Offer />} />
         <Route path="/cart" element={<Cart cartItems={cartItems} updateQuantity={updateQuantity} removeFromCart={removeFromCart} calculateTotal={calculateTotal} />} />
+        <Route path="/wishlist" element={<Wishlist wishlistItems={wishlistItems} toggleWishlist={toggleWishlist} addToCart={addToCart} />} />
         <Route path="/hier" element={<Hier />} />
         <Route path="/success" element={<SuccessPage />} />
         <Route path="/cancel" element={<CancelPage />} />
       </Routes>
+      <Footer />
     </Router>
   );
 }
