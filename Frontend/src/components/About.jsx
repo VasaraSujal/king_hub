@@ -101,15 +101,20 @@ const AboutUs = () => {
     <div className="text-slate-800">
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-100/80 via-white to-blue-200/60" />
-        <div className="relative container mx-auto px-6 pt-28 pb-20 md:pt-36 md:pb-24">
-          <motion.div initial="hidden" animate="visible" variants={reveal} className="max-w-4xl">
+        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-24 pb-16 md:pt-32 md:pb-20">
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={reveal}
+            className="max-w-4xl rounded-[2rem] border border-white/70 bg-white/80 p-8 shadow-xl backdrop-blur-sm md:p-10"
+          >
             <span className="inline-flex items-center rounded-full bg-blue-100 text-blue-700 px-4 py-1.5 text-sm font-semibold">
               About King Hub
             </span>
             <h1 className="mt-6 text-4xl md:text-6xl font-extrabold tracking-tight leading-tight text-slate-900">
               A modern food delivery experience designed for speed and trust.
             </h1>
-            <p className="mt-6 text-lg text-slate-600 max-w-2xl leading-relaxed">
+            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-600">
               King Hub connects people with great restaurants through a simple and reliable ordering flow. Our focus is
               consistent quality, clear communication, and delightful customer experience.
             </p>
@@ -120,7 +125,7 @@ const AboutUs = () => {
             whileInView="visible"
             viewport={{ once: true, amount: 0.2 }}
             variants={reveal}
-            className="mt-12 grid grid-cols-2 lg:grid-cols-4 gap-4"
+            className="mt-10 grid grid-cols-2 gap-4 lg:grid-cols-4"
           >
             {stats.map((stat) => (
               <div key={stat.label} className="surface-panel p-5">
@@ -132,13 +137,13 @@ const AboutUs = () => {
         </div>
       </section>
 
-      <section className="container mx-auto px-6 py-16">
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-14 md:py-16">
         <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.2 }}
           variants={reveal}
-          className="grid md:grid-cols-3 gap-6"
+          className="grid gap-6 md:grid-cols-3"
         >
           {values.map((item) => (
             <article key={item.title} className="surface-panel p-7">
@@ -149,13 +154,13 @@ const AboutUs = () => {
         </motion.div>
       </section>
 
-      <section className="container mx-auto px-6 pb-16">
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-16">
         <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.15 }}
           variants={reveal}
-          className="grid lg:grid-cols-2 gap-8"
+          className="grid gap-8 lg:grid-cols-2"
         >
           <div className="surface-panel p-8">
             <h2 className="text-3xl font-bold text-slate-900">Our Story</h2>
@@ -176,7 +181,7 @@ const AboutUs = () => {
         </motion.div>
       </section>
 
-      <section className="container mx-auto px-6 pb-16">
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-16">
         <motion.div
           initial="hidden"
           whileInView="visible"
@@ -196,7 +201,7 @@ const AboutUs = () => {
         </motion.div>
       </section>
 
-      <section className="container mx-auto px-6 pb-16">
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-16">
         <motion.div
           initial="hidden"
           whileInView="visible"
@@ -217,7 +222,7 @@ const AboutUs = () => {
         </motion.div>
       </section>
 
-      <section className="container mx-auto px-6 pb-16">
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-16">
         <motion.div
           initial="hidden"
           whileInView="visible"
@@ -237,7 +242,7 @@ const AboutUs = () => {
         </motion.div>
       </section>
 
-      <section className="container mx-auto px-6 pb-20">
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-20">
         <motion.div
           initial="hidden"
           whileInView="visible"
@@ -263,7 +268,7 @@ const AboutUs = () => {
               />
               <button
                 type="submit"
-                className="rounded-xl bg-blue-600 text-white px-6 py-3 font-semibold hover:bg-blue-700"
+                className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700 cursor-pointer"
               >
                 Subscribe
               </button>
@@ -303,7 +308,7 @@ const AboutUs = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-xl bg-blue-600 text-white py-3 font-semibold hover:bg-blue-700 disabled:opacity-70"
+                className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-70 cursor-pointer"
               >
                 {loading ? "Sending..." : "Submit"}
               </button>
