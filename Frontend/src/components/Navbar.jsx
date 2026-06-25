@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth0 } from '@auth0/auth0-react';
 import { motion } from 'framer-motion';
 
-const Navbar = ({ cartItems = [] }) => {
+const Navbar = ({ cartItems = [], wishlistItems = [] }) => {
   const { isAuthenticated, loginWithRedirect, logout } = useAuth0();
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
@@ -30,6 +30,7 @@ const Navbar = ({ cartItems = [] }) => {
     { path: '/offer', label: 'Offer' },
     { path: '/about', label: 'About' },
     { path: '/cart', label: 'Cart', showBadge: true },
+    { path: '/wishlist', label: 'Wishlist', showBadge: true, badgeType: 'wishlist' },
     { path: '/Hier', label: 'Hier' },
   ];
 
@@ -39,10 +40,10 @@ const Navbar = ({ cartItems = [] }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       className={`fixed w-full z-50 transition-all duration-300 ${
-        scrolled ? 'bg-white/90 backdrop-blur-md shadow-lg py-2 border-b border-blue-100/80' : 'bg-white py-4 shadow-md border-b border-blue-100/80'
+        scrolled ? 'bg-white/90 backdrop-blur-md shadow-lg border-b border-blue-100/80' : 'bg-white shadow-md border-b border-blue-100/80'
       }`}
     >
-      <div className="container mx-auto flex justify-between items-center px-4">
+      <div className="container mx-auto flex justify-between items-center h-[60px] md:h-[72px] px-4">
         {/* Logo */}
         <Link
           to="/"
@@ -72,13 +73,15 @@ const Navbar = ({ cartItems = [] }) => {
                   <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-800 transition-all duration-300 group-hover:w-full"></span>
                 )}
               </Link>
-              {item.showBadge && cartItems && cartItems.length > 0 && (
+              {item.showBadge && (
                 <motion.span
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="absolute -top-2 -right-3 bg-red-500 text-white rounded-full px-2 text-xs"
+                  className={`absolute -top-2 -right-3 text-white rounded-full px-2 text-xs ${
+                    item.badgeType === 'wishlist' ? 'bg-pink-500' : 'bg-red-500'
+                  }`}
                 >
-                  {cartItems.length}
+                  {item.badgeType === 'wishlist' ? wishlistItems.length : cartItems.length}
                 </motion.span>
               )}
             </li>
@@ -165,9 +168,9 @@ const Navbar = ({ cartItems = [] }) => {
                   >
                     <div className="flex items-center justify-between">
                       {item.label}
-                      {item.showBadge && cartItems && cartItems.length > 0 && (
-                        <span className="bg-red-500 text-white rounded-full px-2 py-0.5 text-xs">
-                          {cartItems.length}
+                      {item.showBadge && (
+                        <span className={`text-white rounded-full px-2 py-0.5 text-xs ${item.badgeType === 'wishlist' ? 'bg-pink-500' : 'bg-red-500'}`}>
+                          {item.badgeType === 'wishlist' ? wishlistItems.length : cartItems.length}
                         </span>
                       )}
                     </div>
