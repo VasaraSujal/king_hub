@@ -361,71 +361,64 @@ const CartPage = ({
                 )}
               </div>
             </motion.div>
-          </div>
 
-          <div className="xl:col-span-4 space-y-6">
-            <motion.aside
+            {/* Delivery address */}
+            <motion.section
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.1 }}
-              className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm xl:sticky xl:top-28"
+              className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm"
             >
-              <h2 className="text-2xl font-bold text-slate-950">Order summary</h2>
-              <div className="mt-5 space-y-3 text-sm">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <span className="text-slate-600">Subtotal</span>
-                  <span className="font-semibold text-slate-950">₹{getTotal().toFixed(2)}</span>
-                </div>
-                {discount > 0 && (
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <span className="text-emerald-600">Discount</span>
-                    <span className="font-semibold text-emerald-600">-₹{discount.toFixed(2)}</span>
-                  </div>
-                )}
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <span className="text-slate-600">Delivery Fee</span>
-                  <span className="font-semibold text-slate-950">
-                    {deliveryFee > 0 ? `₹${deliveryFee.toFixed(2)}` : "Free"}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between pt-1 text-lg font-bold text-slate-950">
-                  <span>Total</span>
-                  <span>₹{getFinalTotal().toFixed(2)}</span>
-                </div>
-              </div>
-            </motion.aside>
+              <h2 className="text-xl font-bold text-slate-950">Delivery address</h2>
+              <div className="mt-4 space-y-4">
+                <div className="relative">
+                  <textarea
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Enter your delivery address"
+                    className="h-28 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
+                  />
 
+                  {savedAddresses.length > 0 && (
+                    <div className="mt-2">
+                      <button
+                        onClick={() => setShowAddressDropdown(!showAddressDropdown)}
+                        className="text-sm font-semibold text-blue-600 transition hover:text-blue-700 cursor-pointer"
+                      >
+                        Use Saved Address
+                      </button>
+
+                      {showAddressDropdown && (
+                        <div className="absolute z-10 mt-2 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+                          {savedAddresses.map((savedAddress, index) => (
+                            <button
+                              key={index}
+                              onClick={() => selectAddress(savedAddress)}
+                              className="block w-full border-b border-slate-100 px-4 py-3 text-left text-sm text-slate-700 last:border-b-0 hover:bg-blue-50 cursor-pointer"
+                            >
+                              {savedAddress}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={saveAddress}
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 transition hover:text-blue-700 cursor-pointer"
+                >
+                  Save This Address
+                </button>
+              </div>
+            </motion.section>
+
+            {/* Delivery options */}
             <motion.section
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.2 }}
-              className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm"
-            >
-              <h2 className="text-xl font-bold text-slate-950">Apply coupon</h2>
-              <div className="mt-4 flex gap-2">
-                <input
-                  type="text"
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value)}
-                  placeholder="Enter coupon code"
-                  className="min-w-0 flex-1 rounded-full border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
-                />
-                <button
-                  onClick={applyCoupon}
-                  className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 cursor-pointer"
-                >
-                  Apply
-                </button>
-              </div>
-              <p className="mt-3 text-xs text-slate-500">
-                Try FIRST10 for 10% off or FREE for ₹50 off.
-              </p>
-            </motion.section>
-
-            <motion.section
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 0.3 }}
               className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm"
             >
               <h2 className="text-xl font-bold text-slate-950">Delivery options</h2>
@@ -490,112 +483,120 @@ const CartPage = ({
               </div>
             </motion.section>
 
+            {/* Apply coupon */}
             <motion.section
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.3 }}
+              className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm"
+            >
+              <h2 className="text-xl font-bold text-slate-950">Apply coupon</h2>
+              <div className="mt-4 flex gap-2">
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value)}
+                  placeholder="Enter coupon code"
+                  className="min-w-0 flex-1 rounded-full border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
+                />
+                <button
+                  onClick={applyCoupon}
+                  className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 cursor-pointer"
+                >
+                  Apply
+                </button>
+              </div>
+              <p className="mt-3 text-xs text-slate-500">
+                Try FIRST10 for 10% off or FREE for ₹50 off.
+              </p>
+            </motion.section>
+          </div>
+
+          <div className="xl:col-span-4">
+            {/* Sticky Order Summary & Proceed to Payment */}
+            <motion.aside
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.4 }}
-              className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm"
+              className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm xl:sticky xl:top-28 space-y-6"
             >
-              <h2 className="text-xl font-bold text-slate-950">Delivery address</h2>
-              <div className="mt-4 space-y-4">
-                <div className="relative">
-                  <textarea
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Enter your delivery address"
-                    className="h-28 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
-                  />
-
-                  {savedAddresses.length > 0 && (
-                    <div className="mt-2">
-                      <button
-                        onClick={() => setShowAddressDropdown(!showAddressDropdown)}
-                        className="text-sm font-semibold text-blue-600 transition hover:text-blue-700 cursor-pointer"
-                      >
-                        Use Saved Address
-                      </button>
-
-                      {showAddressDropdown && (
-                        <div className="absolute z-10 mt-2 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
-                          {savedAddresses.map((savedAddress, index) => (
-                            <button
-                              key={index}
-                              onClick={() => selectAddress(savedAddress)}
-                              className="block w-full border-b border-slate-100 px-4 py-3 text-left text-sm text-slate-700 last:border-b-0 hover:bg-blue-50 cursor-pointer"
-                            >
-                              {savedAddress}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+              <div>
+                <h2 className="text-2xl font-bold text-slate-950">Order summary</h2>
+                <div className="mt-5 space-y-3 text-sm">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <span className="text-slate-600">Subtotal</span>
+                    <span className="font-semibold text-slate-950">₹{getTotal().toFixed(2)}</span>
+                  </div>
+                  {discount > 0 && (
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                      <span className="text-emerald-600">Discount</span>
+                      <span className="font-semibold text-emerald-600">-₹{discount.toFixed(2)}</span>
                     </div>
                   )}
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <span className="text-slate-600">Delivery Fee</span>
+                    <span className="font-semibold text-slate-950">
+                      {deliveryFee > 0 ? `₹${deliveryFee.toFixed(2)}` : "Free"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1 text-lg font-bold text-slate-950">
+                    <span>Total</span>
+                    <span>₹{getFinalTotal().toFixed(2)}</span>
+                  </div>
                 </div>
-
-                <button
-                  onClick={saveAddress}
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 transition hover:text-blue-700 cursor-pointer"
-                >
-                  Save This Address
-                </button>
               </div>
-            </motion.section>
 
-            <motion.section
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 0.5 }}
-              className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm"
-            >
-              <button
-                onClick={makePayment}
-                disabled={isProcessing || cartItems.length === 0}
-                className={`inline-flex w-full items-center justify-center rounded-full px-5 py-4 text-lg font-semibold text-white transition cursor-pointer ${
-                  isProcessing || cartItems.length === 0
-                    ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                    : "bg-slate-950 hover:bg-slate-800"
-                }`}
-              >
-                {isProcessing ? (
-                  <>
-                    <svg
-                      className="-ml-1 mr-3 h-5 w-5 animate-spin text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                    Processing...
-                  </>
-                ) : isAuthenticated ? (
-                  "Proceed to Payment"
-                ) : (
-                  "Sign In to Pay"
+              <div className="border-t border-slate-100 pt-6">
+                <button
+                  onClick={makePayment}
+                  disabled={isProcessing || cartItems.length === 0}
+                  className={`inline-flex w-full items-center justify-center rounded-full px-5 py-4 text-lg font-semibold text-white transition cursor-pointer ${
+                    isProcessing || cartItems.length === 0
+                      ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                      : "bg-slate-950 hover:bg-slate-800"
+                  }`}
+                >
+                  {isProcessing ? (
+                    <>
+                      <svg
+                        className="-ml-1 mr-3 h-5 w-5 animate-spin text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                      Processing...
+                    </>
+                  ) : isAuthenticated ? (
+                    "Proceed to Payment"
+                  ) : (
+                    "Sign In to Pay"
+                  )}
+                </button>
+
+                {!isAuthenticated && (
+                  <p className="mt-3 text-center text-xs text-slate-500">
+                    You can add items to cart as a guest. Sign in only when you are ready to pay.
+                  </p>
                 )}
-              </button>
-
-              {!isAuthenticated && (
-                <p className="mt-3 text-center text-xs text-slate-500">
-                  You can add items to cart as a guest. Sign in only when you are ready to pay.
+                <p className="mt-2 text-center text-xs text-slate-500">
+                  Secure payment powered by Stripe.
                 </p>
-              )}
-              <p className="mt-2 text-center text-xs text-slate-500">
-                Secure payment powered by Stripe.
-              </p>
-            </motion.section>
+              </div>
+            </motion.aside>
           </div>
         </div>
       </section>
