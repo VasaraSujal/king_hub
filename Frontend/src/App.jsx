@@ -76,15 +76,25 @@ function App() {
 
   const getItemId = (item) => item?._id || item?.id || item?.itemId || item?.foodname;
 
+  const getCartItemUniqueId = (item) => {
+    const baseId = item?._id || item?.id || item?.itemId || item?.foodname || 'item';
+    const size = item?.selectedSize || 'Small';
+    const addOnsKey = Array.isArray(item?.addOns)
+      ? item.addOns.map(a => a.id || a.name).sort().join(',')
+      : '';
+    return `${baseId}-${size}-${addOnsKey}`;
+  };
+
   const normalizeCartItem = (item) => {
     const quantity = Number(item?.quantity || 1);
-    const basePrice = Number(item?.price ?? item?.totalPrice ?? 0);
+    const basePrice = Number(item?.totalPrice ?? item?.price ?? 0);
     const displayName = item?.foodname || item?.itemName || item?.name || 'Food Item';
+    const uniqueId = getCartItemUniqueId(item);
 
     return {
       ...item,
-      _id: getItemId(item),
-      id: item?.id || item?._id || item?.itemId || item?.foodname,
+      _id: uniqueId,
+      id: uniqueId,
       foodname: displayName,
       itemName: item?.itemName || displayName,
       imageUrl: item?.imageUrl || item?.image || item?.bgImage || '',
