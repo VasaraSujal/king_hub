@@ -27,7 +27,14 @@ import {
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "https://king-hub-1.onrender.com";
 
-const RestaurantDetails = ({ restaurantId, cartItems }) => {
+const RestaurantDetails = ({
+  restaurantId,
+  cartItems,
+  addToCart,
+  removeFromCart,
+  toggleWishlist,
+  isWishlisted = () => false,
+}) => {
   const { id } = useParams();
   const resolvedRestaurantId = restaurantId || id;
 
@@ -137,7 +144,6 @@ const RestaurantDetails = ({ restaurantId, cartItems }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [cart, setCart] = useState(cartItems || []); // Initialize with cartItems
   const [showCart, setShowCart] = useState(false);
-  const [favorites, setFavorites] = useState([]);
   const [scrolled, setScrolled] = useState(false);
   const [activeItemModal, setActiveItemModal] = useState(null);
   const [showHoursModal, setShowHoursModal] = useState(false);
@@ -344,66 +350,18 @@ const RestaurantDetails = ({ restaurantId, cartItems }) => {
     });
   };
 
-  // Add to cart function
-  const addToCart = (item) => {
-    const normalizedItem = normalizeCartItem(item);
-    const existingItemIndex = cart.findIndex(
-      (cartItem) => getItemKey(cartItem) === getItemKey(normalizedItem)
-    );
-
-    if (existingItemIndex >= 0) {
-      const updatedCart = [...cart];
-      updatedCart[existingItemIndex] = {
-        ...updatedCart[existingItemIndex],
-        quantity: (updatedCart[existingItemIndex].quantity || 1) + 1,
-      };
-      setCart(updatedCart);
-    } else {
-      setCart([...cart, normalizedItem]);
-    }
-  };
-
-  // Remove from cart function
-  const removeFromCart = (itemId) => {
-    const existingItemIndex = cart.findIndex(
-      (cartItem) => getItemKey(cartItem) === itemId
-    );
-
-    if (existingItemIndex >= 0) {
-      const updatedCart = [...cart];
-      if (updatedCart[existingItemIndex].quantity > 1) {
-        updatedCart[existingItemIndex] = {
-          ...updatedCart[existingItemIndex],
-          quantity: updatedCart[existingItemIndex].quantity - 1,
-        };
-        setCart(updatedCart);
-      } else {
-        setCart(cart.filter((item) => getItemKey(item) !== itemId));
-      }
-    }
-  };
-
-  // Toggle favorite status
-  const toggleFavorite = (itemId) => {
-    if (favorites.includes(itemId)) {
-      setFavorites(favorites.filter((id) => id !== itemId));
-    } else {
-      setFavorites([...favorites, itemId]);
-    }
-  };
-
   // Show notification when item is added to cart
-const showItemAddedNotification = (item) => {
-  toast.success(`${item} added to cart`, {
-    position: "top-right",
-    autoClose: 2000, // Ensure this is set
-    hideProgressBar: false,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true,
-    theme: "light",
-  });
-};
+  const showItemAddedNotification = (itemName) => {
+    toast.success(`${itemName} added to cart!`, {
+      position: "top-right",
+      autoClose: 2000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      theme: "light",
+    });
+  };
 
   // Scroll to category
   const scrollToCategory = (categoryId) => {
@@ -426,6 +384,25 @@ const showItemAddedNotification = (item) => {
     (total, item) => total + item.price * item.quantity,
     0
   );
+  const handleWishlistToggle = (item) => {
+    if (typeof toggleWishlist !== "function") return;
+
+    const added = toggleWishlist(item);
+    toast.info(
+      added
+        ? `${item.foodname || item.itemName || item.name} saved to wishlist!`
+        : `${item.foodname || item.itemName || item.name} removed from wishlist!`,
+      {
+        position: "top-right",
+        autoClose: 1600,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        theme: "light",
+      }
+    );
+  };
   const deliveryFee = 1.99;
   const tax = cartTotal * 0.08;
   const finalTotal = cartTotal + deliveryFee + tax;
@@ -479,7 +456,7 @@ const showItemAddedNotification = (item) => {
         <div className="relative w-full max-w-2xl bg-white rounded-2xl overflow-hidden shadow-2xl m-4 max-h-[90vh] flex flex-col">
           <button
             onClick={() => setActiveItemModal(null)}
-            className="absolute top-4 right-4 z-30 p-2 bg-black/30 rounded-full text-white hover:bg-black/50 transition-colors"
+            className="absolute top-4 right-4 z-30 p-2 bg-black/30 rounded-full text-white hover:bg-black/50 transition-colors cursor-pointer"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -497,7 +474,7 @@ const showItemAddedNotification = (item) => {
             </svg>
           </button>
 
-          <div className="relative h-64">
+          <div className="relative h-64 md:h-80">
             <img
               src={getMenuItemImage(item)}
               alt={item.foodname || item.itemName || item.name}
@@ -535,20 +512,65 @@ const showItemAddedNotification = (item) => {
             </div>
           </div>
 
-          <div className="p-6 flex-1 overflow-y-auto">
+          {/* Desktop Sticky Order Summary */}
+          <aside className="hidden lg:block fixed right-8 top-36 w-80 z-30">
+            <div className="bg-white rounded-2xl p-4 shadow-lg">
+              <h3 className="text-lg font-bold mb-3">Order Summary</h3>
+              {cart.length === 0 ? (
+                <div className="text-sm text-gray-600">Your cart is empty</div>
+              ) : (
+                <div>
+                  <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
+                    {cart.map((item) => (
+                      <div key={getItemKey(item)} className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-md overflow-hidden bg-gray-100">
+                            <img
+                              src={item.imageUrl || getMenuItemImage(item)}
+                              alt={item.foodname || item.itemName}
+                              className="w-full h-full object-cover"
+                              onError={(e) => withFallbackImage(e, `${getItemKey(item)}-summary`, 300, 300)}
+                            />
+                          </div>
+                          <div className="text-sm">
+                            <div className="font-medium text-gray-900">{item.foodname || item.itemName}</div>
+                            <div className="text-gray-500">Qty: {item.quantity}</div>
+                          </div>
+                        </div>
+                        <div className="text-sm font-bold">₹{(Number(item.price || 0) * Number(item.quantity || 1)).toFixed(2)}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 border-t pt-3">
+                    <div className="flex justify-between text-sm text-gray-600">
+                      <span>Subtotal</span>
+                      <span className="font-medium">₹{cartTotal.toFixed(2)}</span>
+                    </div>
+                    <div className="mt-3">
+                      <button onClick={() => setShowCart(true)} className="w-full mb-2 px-3 py-2 rounded-md border hover:bg-gray-50 transition cursor-pointer">View Cart</button>
+                      <button onClick={makePayment} className="w-full bg-indigo-600 text-white px-3 py-2 rounded-md hover:bg-indigo-700 transition cursor-pointer">Proceed to Checkout</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </aside>
+
+            <div className="p-6 flex-1 overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <span className="text-2xl font-bold text-indigo-600">
+              <span className="text-3xl font-extrabold text-indigo-600">
                 ₹{item.price.toFixed(2)}
               </span>
               <button
-                onClick={() => toggleFavorite(getItemKey(item))}
+                onClick={() => handleWishlistToggle(item)}
                 className={`p-2 rounded-full ${
-                  favorites.includes(getItemKey(item))
+                  isWishlisted(getItemKey(item))
                     ? "text-pink-500 bg-pink-100"
                     : "text-gray-400 bg-gray-100"
-                } transition-colors`}
+                } transition-colors cursor-pointer`}
               >
-                {favorites.includes(getItemKey(item)) ? (
+                {isWishlisted(getItemKey(item)) ? (
                   <IoHeart className="h-6 w-6" />
                 ) : (
                   <IoHeartOutline className="h-6 w-6" />
@@ -693,6 +715,7 @@ const showItemAddedNotification = (item) => {
 
   return (
     <div className="bg-indigo-50 min-h-screen font-sans">
+      <ToastContainer />
       {loading ? (
         <div className="flex items-center justify-center min-h-screen">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
@@ -721,7 +744,7 @@ const showItemAddedNotification = (item) => {
             <div className="absolute top-4 left-4 z-10">
               <button
                 onClick={() => window.history.back()}
-                className="p-3 rounded-full bg-white/90 text-gray-800 hover:bg-white transition-colors duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                className="p-3 rounded-full bg-white/90 text-gray-800 hover:bg-white transition-colors duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 cursor-pointer"
               >
                 <IoArrowBack size={22} />
               </button>
@@ -798,7 +821,7 @@ const showItemAddedNotification = (item) => {
           </div>
 
           {/* Restaurant Info Cards */}
-          <div className="px-4 md:px-10 py-4 -mt-6">
+          <div className="mx-auto max-w-6xl px-4 md:px-10 py-4 -mt-6">
             <div className="bg-white rounded-xl shadow-lg p-6 mb-8 transform transition-all">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="flex items-center group">
@@ -906,11 +929,12 @@ const showItemAddedNotification = (item) => {
 
           {/* Sticky Filter/Search Section */}
           <div
-            className={`sticky w-370 mx-auto p-6 top-0 rounded-xl pt-4 pb-2 bg-indigo-50 z-20 transition-all duration-300 ${
+            className={`sticky top-[60px] md:top-[68px] z-20 transition-all duration-300 ${
               scrolled ? "shadow-md" : ""
             }`}
           >
-            <div className="flex flex-col md:flex-row gap-4">
+            <div className="mx-auto max-w-6xl px-4 md:px-10 p-6 rounded-xl pt-4 pb-2 bg-indigo-50">
+              <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <IoSearch className="h-5 w-5 text-gray-400" />
@@ -930,152 +954,140 @@ const showItemAddedNotification = (item) => {
                     filterPopular
                       ? "bg-indigo-600 text-white"
                       : "bg-white text-gray-600 hover:bg-gray-100"
-                  } transition-colors duration-300`}
+                  } transition-colors duration-300 cursor-pointer`}
                   onClick={() => setFilterPopular(!filterPopular)}
                 >
                   Popular Items
                 </button>
                 <button
-                  className="p-3 rounded-xl bg-white text-gray-600 hover:bg-gray-100 transition-colors duration-300"
+                  className="p-3 rounded-xl bg-white text-gray-600 hover:bg-gray-100 transition-colors duration-300 cursor-pointer"
                   onClick={() => setShowFilters(!showFilters)}
                 >
                   <IoFilter size={22} />
                 </button>
               </div>
+              </div>
+
+              {/* Category Navigation */}
+              <div className="mt-6 mb-2 overflow-x-auto scrollbar-hide">
+                <div className="flex space-x-2 pb-1">
+                  {restaurant.menu?.map((category) => (
+                    <button
+                      key={category.id}
+                      onClick={() => scrollToCategory(category.id)}
+                      className={`whitespace-nowrap px-5 py-2 rounded-full font-medium transition-all ${
+                        activeCategory === category.id
+                          ? "bg-indigo-600 text-white shadow-md"
+                          : "bg-white text-gray-600 hover:bg-gray-100"
+                      } cursor-pointer`}
+                    >
+                      {category.categoryName}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            {/* Filter Panel */}
+            {/* Filter Panel (moved inside centered container) */}
             {showFilters && (
-              <div className="mt-4 bg-white rounded-xl p-4 shadow-lg animate-slideDown">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div>
-                    <h3 className="font-medium text-gray-900 mb-2">Diet</h3>
-                    <div className="space-y-2">
-                      {[
-                        "Vegetarian",
-                        "Vegan",
-                        "Gluten-Free",
-                        "Non-Vegetarian",
-                      ].map((diet) => (
-                        <label key={diet} className="flex items-center">
+              <div className="mx-auto max-w-6xl px-4 md:px-10 mt-4">
+                <div className="bg-white rounded-xl p-4 shadow-lg animate-slideDown">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <h3 className="font-medium text-gray-900 mb-2">Diet</h3>
+                      <div className="space-y-2">
+                        {["Vegetarian", "Vegan", "Gluten-Free", "Non-Vegetarian"].map((diet) => (
+                          <label key={diet} className="flex items-center">
+                            <input
+                              type="checkbox"
+                              className="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                              checked={selectedFilters.diet.includes(diet)}
+                              onChange={() => handleFilterChange("diet", diet)}
+                            />
+                            <span className="ml-2 text-gray-700">{diet}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="font-medium text-gray-900 mb-2">Allergies</h3>
+                      <div className="space-y-2">
+                        {["No Dairy", "No Nuts", "No Eggs"].map((allergy) => (
+                          <label key={allergy} className="flex items-center">
+                            <input
+                              type="checkbox"
+                              className="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                              checked={selectedFilters.allergies.includes(allergy)}
+                              onChange={() => handleFilterChange("allergies", allergy)}
+                            />
+                            <span className="ml-2 text-gray-700">{allergy}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="font-medium text-gray-900 mb-2">Price Range</h3>
+                      <div className="flex flex-col space-y-2">
+                        <label className="flex items-center space-x-2">
                           <input
                             type="checkbox"
-                            className="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4"
-                            checked={selectedFilters.diet.includes(diet)}
-                            onChange={() => handleFilterChange("diet", diet)}
+                            checked={selectedFilters.priceRange.includes("below_200")}
+                            onChange={() => handleFilterChange("priceRange", "below_200")}
+                            className="form-checkbox text-blue-600"
                           />
-                          <span className="ml-2 text-gray-700">{diet}</span>
+                          <span className="text-gray-700">Below ₹200</span>
                         </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-medium text-gray-900 mb-2">
-                      Allergies
-                    </h3>
-                    <div className="space-y-2">
-                      {["No Dairy", "No Nuts", "No Eggs"].map((allergy) => (
-                        <label key={allergy} className="flex items-center">
+                        <label className="flex items-center space-x-2">
                           <input
                             type="checkbox"
-                            className="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4"
-                            checked={selectedFilters.allergies.includes(
-                              allergy
-                            )}
-                            onChange={() =>
-                              handleFilterChange("allergies", allergy)
-                            }
+                            checked={selectedFilters.priceRange.includes("200_500")}
+                            onChange={() => handleFilterChange("priceRange", "200_500")}
+                            className="form-checkbox text-blue-600"
                           />
-                          <span className="ml-2 text-gray-700">{allergy}</span>
+                          <span className="text-gray-700">₹200 - ₹500</span>
                         </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-medium text-gray-900 mb-2">
-                      Price Range
-                    </h3>
-                    <div className="flex flex-col space-y-2">
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={selectedFilters.priceRange.includes(
-                            "below_200"
-                          )}
-                          onChange={() =>
-                            handleFilterChange("priceRange", "below_200")
-                          }
-                          className="form-checkbox text-blue-600"
-                        />
-                        <span className="text-gray-700">Below ₹200</span>
-                      </label>
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={selectedFilters.priceRange.includes(
-                            "200_500"
-                          )}
-                          onChange={() =>
-                            handleFilterChange("priceRange", "200_500")
-                          }
-                          className="form-checkbox text-blue-600"
-                        />
-                        <span className="text-gray-700">₹200 - ₹500</span>
-                      </label>
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={selectedFilters.priceRange.includes(
-                            "above_500"
-                          )}
-                          onChange={() =>
-                            handleFilterChange("priceRange", "above_500")
-                          }
-                          className="form-checkbox text-blue-600"
-                        />
-                        <span className="text-gray-700">Above ₹500</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-medium text-gray-900 mb-2">
-                      Spice Level
-                    </h3>
-                    <div className="space-y-2">
-                      {["Not Spicy", "Mild", "Medium", "Spicy"].map((level) => (
-                        <label key={level} className="flex items-center">
+                        <label className="flex items-center space-x-2">
                           <input
                             type="checkbox"
-                            className="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4"
-                            checked={selectedFilters.spiceLevel.includes(level)}
-                            onChange={() =>
-                              handleFilterChange("spiceLevel", level)
-                            }
+                            checked={selectedFilters.priceRange.includes("above_500")}
+                            onChange={() => handleFilterChange("priceRange", "above_500")}
+                            className="form-checkbox text-blue-600"
                           />
-                          <span className="ml-2 text-gray-700">{level}</span>
+                          <span className="text-gray-700">Above ₹500</span>
                         </label>
-                      ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="font-medium text-gray-900 mb-2">Spice Level</h3>
+                      <div className="space-y-2">
+                        {["Not Spicy", "Mild", "Medium", "Spicy"].map((level) => (
+                          <label key={level} className="flex items-center">
+                            <input
+                              type="checkbox"
+                              className="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                              checked={selectedFilters.spiceLevel.includes(level)}
+                              onChange={() => handleFilterChange("spiceLevel", level)}
+                            />
+                            <span className="ml-2 text-gray-700">{level}</span>
+                          </label>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex justify-end mt-4 pt-4 border-t border-gray-200">
-                  <button
-                    className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg mr-3 hover:bg-gray-300 transition-colors duration-300"
-                    onClick={() =>
-                      setSelectedFilters({
-                        diet: [],
-                        allergies: [],
-                        priceRange: [],
-                        spiceLevel: [],
-                      })
-                    }
-                  >
-                    Clear All
-                  </button>
+                  <div className="flex justify-end mt-4 pt-4 border-t border-gray-200">
+                    <button
+                      className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg mr-3 hover:bg-gray-300 transition-colors duration-300"
+                      onClick={() =>
+                        setSelectedFilters({ diet: [], allergies: [], priceRange: [], spiceLevel: [] })
+                      }
+                    >
+                      Clear All
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -1101,7 +1113,7 @@ const showItemAddedNotification = (item) => {
           </div>
 
           {/* Menu Section */}
-          <div className="px-4 md:px-10 pb-32" ref={menuRef}>
+          <div className="mx-auto max-w-6xl px-4 md:px-10 pb-32" ref={menuRef}>
             <div className="mt-8 space-y-10">
               {(() => {
                 const hasItems = restaurant.menu?.some((category) => {
@@ -1146,22 +1158,23 @@ const showItemAddedNotification = (item) => {
                       <h2 className="text-2xl font-bold text-gray-900 mb-6">
                         {category.categoryName}
                       </h2>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {filteredItems.map((item) => {
                           const itemKey = getItemKey(item);
                           const normalizedItem = normalizeCartItem(item, category.categoryName);
+                          const displayName = item.itemName || item.foodname || item.name || normalizedItem.itemName;
 
                           return (
                           <div
                             key={itemKey}
-                            className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow group cursor-pointer"
+                            className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow transform hover:-translate-y-0.5 group cursor-pointer"
                             onClick={() => setActiveItemModal(normalizedItem)}
                           >
-                            <div className="relative h-48">
+                            <div className="relative h-56 md:h-60">
                               <img
-                                      src={getMenuItemImage(item, category.categoryName)}
-                                alt={item.itemName}
-                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                src={getMenuItemImage(item, category.categoryName)}
+                                alt={displayName}
+                                className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
                                 onError={(e) =>
                                   withFallbackImage(
                                     e,
@@ -1179,31 +1192,31 @@ const showItemAddedNotification = (item) => {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                    toggleFavorite(itemKey);
+                                    handleWishlistToggle(normalizedItem);
                                 }}
                                 className={`absolute top-2 right-2 p-2 rounded-full ${
-                                  favorites.includes(itemKey)
+                                  isWishlisted(itemKey)
                                     ? "bg-pink-500 text-white"
                                     : "bg-white/70 text-gray-600 hover:bg-white"
-                                } transition-colors`}
+                                } transition-colors cursor-pointer`}
                               >
-                                {favorites.includes(itemKey) ? (
+                                {isWishlisted(itemKey) ? (
                                   <IoHeart size={18} />
                                 ) : (
                                   <IoHeartOutline size={18} />
                                 )}
                               </button>
                             </div>
-                            <div className="p-4">
-                              <div className="flex items-center justify-between mb-2">
-                                <h3 className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
-                                  {item.itemName}
+                            <div className="p-5">
+                              <div className="flex items-start justify-between mb-2">
+                                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
+                                  {displayName}
                                 </h3>
-                                <span className="font-bold text-indigo-600">
+                                <span className="text-indigo-600 text-lg font-bold">
                                   ₹{item.price?.toFixed(2) || "0.00"}
                                 </span>
                               </div>
-                              <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                              <p className="text-gray-600 text-sm mb-4 line-clamp-3">
                                 {item.description}
                               </p>
                               <div className="flex items-center justify-between mt-auto pt-3 border-t border-gray-100">
@@ -1217,8 +1230,9 @@ const showItemAddedNotification = (item) => {
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     addToCart(normalizedItem);
+                                    showItemAddedNotification(displayName);
                                   }}
-                                  className="p-2 bg-indigo-100 text-indigo-600 rounded-full hover:bg-indigo-600 hover:text-white transition-colors ml-auto"
+                                  className="p-2 bg-indigo-100 text-indigo-600 rounded-full hover:bg-indigo-600 hover:text-white transition-colors ml-auto cursor-pointer"
                                 >
                                   <IoAdd size={18} />
                                 </button>
@@ -1239,7 +1253,7 @@ const showItemAddedNotification = (item) => {
           <div className="fixed bottom-6 right-6 z-30">
             <button
               onClick={() => setShowCart(!showCart)}
-              className="relative bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+              className="relative bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 cursor-pointer"
             >
               <IoCart size={24} />
               {cart.length > 0 && (
@@ -1310,7 +1324,7 @@ const showItemAddedNotification = (item) => {
                         </p>
                         <button
                           onClick={() => setShowCart(false)}
-                          className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                          className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer"
                         >
                           Browse Menu
                         </button>
