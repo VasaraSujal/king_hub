@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import { useNavigate } from "react-router-dom";
+import { useAuth0 } from "@auth0/auth0-react";
 import { motion } from "framer-motion";
 
 const API_BASE_URL =
@@ -22,31 +23,29 @@ const CartPage = ({
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [showConfirmRemove, setShowConfirmRemove] = useState(null);
   const navigate = useNavigate();
+  const { isAuthenticated, loginWithRedirect } = useAuth0();
 
   const getItemKey = (item) => item?._id || item?.id || item?.itemId || item?.foodname;
   const getItemName = (item) => item?.foodname || item?.itemName || item?.name || "Food Item";
   const getItemImage = (item) => item?.imageUrl || item?.image || item?.bgImage || "https://via.placeholder.com/300x200?text=Food+Image";
+  const getFallbackItemImage = (item) => {
+    const itemName = encodeURIComponent(getItemName(item));
+    return `https://via.placeholder.com/300x200?text=${itemName}`;
+  };
 
-  // Load saved addresses from localStorage on component mount
   useEffect(() => {
-    const addresses = JSON.parse(
-      localStorage.getItem("savedAddresses") || "[]"
-    );
+    const addresses = JSON.parse(localStorage.getItem("savedAddresses") || "[]");
     setSavedAddresses(addresses);
   }, []);
 
-  // Ensure calculateTotal is a valid function and returns a number
   const getTotal = () => {
-    // Calculate the sum of (price * quantity) for each item in cartItems
     if (!cartItems || cartItems.length === 0) {
       return 0;
     }
 
-    const total = cartItems.reduce((sum, item) => {
+    return cartItems.reduce((sum, item) => {
       return sum + Number(item.price || 0) * Number(item.quantity || 1);
     }, 0);
-
-    return total;
   };
 
   const getFinalTotal = () => {
@@ -55,10 +54,9 @@ const CartPage = ({
 
   const applyCoupon = () => {
     if (couponCode.toLowerCase() === "first10") {
-      const discountAmount = getTotal() * 0.1; // 10% discount
-      setDiscount(discountAmount);
+      setDiscount(getTotal() * 0.1);
     } else if (couponCode.toLowerCase() === "free") {
-      setDiscount(50); // Flat ₹50 off
+      setDiscount(50);
     } else {
       alert("Invalid coupon code");
       setDiscount(0);
@@ -81,6 +79,7 @@ const CartPage = ({
       alert("Please enter an address");
       return;
     }
+
     const updatedAddresses = [...savedAddresses, address];
     setSavedAddresses(updatedAddresses);
     localStorage.setItem("savedAddresses", JSON.stringify(updatedAddresses));
@@ -94,8 +93,18 @@ const CartPage = ({
   };
 
   const makePayment = async () => {
+    if (!isAuthenticated) {
+      await loginWithRedirect();
+      return;
+    }
+
     if (!address.trim()) {
       alert("Please enter a delivery address");
+      return;
+    }
+
+    if (cartItems.length === 0) {
+      alert("Your cart is empty. Please add items before checkout.");
       return;
     }
 
@@ -103,35 +112,31 @@ const CartPage = ({
       "pk_test_51QzA2LKS3UqIJrTgrHvrBDYirStwZHOOq2XrnOjGCwGk5B9BMvynXpRCLUKKEsRHUSDuOkHdZku875rlNWpYpSZZ00ZKLqjASA"
     );
 
-    if (cartItems.length === 0) {
-      alert("Your cart is empty. Please add items before checkout.");
+    if (!stripe) {
+      alert("Unable to start checkout right now.");
       return;
     }
 
     setIsProcessing(true);
-    const headers = {
-      "Content-Type": "application/json",
-    };
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/payment/create-checkout-session`,
-        {
-          method: "POST",
-          headers: headers,
-          body: JSON.stringify({
-            items: cartItems.map((item) => ({
-                name: getItemName(item),
-                price: Number(item.price || 0),
-                quantity: Number(item.quantity || 1),
-                imageUrl: getItemImage(item),
-            })),
-            deliveryAddress: address,
-            deliveryOption: deliveryOption,
-            totalAmount: getFinalTotal(),
-          }),
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/api/payment/create-checkout-session`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          items: cartItems.map((item) => ({
+            name: getItemName(item),
+            price: Number(item.price || 0),
+            quantity: Number(item.quantity || 1),
+            imageUrl: getItemImage(item),
+          })),
+          deliveryAddress: address,
+          deliveryOption,
+          totalAmount: getFinalTotal(),
+        }),
+      });
 
       if (!response.ok) {
         throw new Error("Failed to create checkout session");
@@ -143,7 +148,6 @@ const CartPage = ({
         throw new Error("Session URL is missing");
       }
 
-      // Redirect to Stripe checkout page
       window.location.href = session.url;
     } catch (error) {
       console.error("Payment Error:", error);
@@ -152,7 +156,6 @@ const CartPage = ({
     }
   };
 
-  // Function to handle item removal with confirmation
   const handleRemoveItem = (itemId) => {
     if (showConfirmRemove === itemId) {
       removeFromCart(itemId);
@@ -164,192 +167,88 @@ const CartPage = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10">
-        {/* Header with animation */}
-        <motion.h1
-          initial={{ opacity: 0, y: -20 }}
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(219,234,254,0.9),_transparent_35%),linear-gradient(180deg,_#f8fbff_0%,_#ffffff_42%,_#eef2ff_100%)] pt-24 pb-16 text-slate-800">
+      <section className="mx-auto max-w-6xl px-4 sm:px-6">
+        <motion.div
+          initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-4xl font-bold text-gray-900 mb-8 text-center"
+          transition={{ duration: 0.45 }}
+          className="rounded-[2rem] border border-blue-100 bg-white p-6 sm:p-8 shadow-xl"
         >
-          Your Cart ({cartItems.length} Items)
-        </motion.h1>
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl">
+              <span className="inline-flex rounded-full bg-blue-100 px-4 py-1.5 text-sm font-semibold text-blue-700">
+                Checkout
+              </span>
+              <h1 className="mt-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-950">
+                Your cart is ready for final review.
+              </h1>
+              <p className="mt-3 text-slate-600 leading-relaxed">
+                Review items, adjust quantities, add your address, and continue to payment when you are ready.
+              </p>
+            </div>
 
-        <div className="flex flex-col md:flex-row space-y-8 md:space-y-0 md:space-x-8">
-          {/* Cart Items Section */}
-          <div className="w-full md:w-2/3">
-            {cartItems.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5 }}
-                className="bg-white rounded-2xl shadow-lg p-6 text-center"
-              >
-                <div className="flex flex-col items-center justify-center py-12">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-24 w-24 text-gray-300 mb-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
-                    />
-                  </svg>
-                  <p className="text-xl text-gray-500 mb-4">
-                    Your cart is empty.
-                  </p>
-                  <p className="text-gray-400 mb-6">
-                    Looks like you haven't added anything to your cart yet.
-                  </p>
-                  <button
-                    onClick={() => navigate("/menu")}
-                    className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-6 py-3 rounded-lg focus:outline-none transition-all duration-200 flex items-center"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5 mr-2"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                      />
-                    </svg>
-                    Explore Menu
-                  </button>
+            <div className="grid grid-cols-3 gap-3 sm:gap-4 w-full lg:w-auto lg:min-w-[320px]">
+              <div className="rounded-2xl bg-slate-50 px-4 py-4">
+                <p className="text-2xl font-extrabold text-slate-950">{cartItems.length}</p>
+                <p className="mt-1 text-sm font-semibold text-slate-600">Items</p>
+              </div>
+              <div className="rounded-2xl bg-blue-50 px-4 py-4">
+                <p className="text-2xl font-extrabold text-slate-950">₹{getTotal().toFixed(0)}</p>
+                <p className="mt-1 text-sm font-semibold text-blue-700">Subtotal</p>
+              </div>
+              <div className="rounded-2xl bg-emerald-50 px-4 py-4">
+                <p className="text-2xl font-extrabold text-slate-950">{isAuthenticated ? "In" : "Guest"}</p>
+                <p className="mt-1 text-sm font-semibold text-emerald-700">Status</p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 mt-6">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+          <div className="xl:col-span-8 space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45 }}
+              className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm"
+            >
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-950">Cart items</h2>
+                  <p className="mt-1 text-slate-600">{cartItems.length === 0 ? "No items in cart" : `${cartItems.length} item${cartItems.length === 1 ? "" : "s"} in your cart`}</p>
                 </div>
-              </motion.div>
-            ) : (
-              <>
-                {cartItems.map((item, index) => (
-                  <motion.div
-                    key={getItemKey(item) || index}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
-                    className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 mb-6 p-6"
-                  >
-                    <div className="flex flex-col sm:flex-row items-center">
-                      <img
-                        src={getItemImage(item)}
-                        alt={getItemName(item)}
-                        className="w-32 h-32 object-cover rounded-lg mb-4 sm:mb-0 hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="sm:ml-6 flex-1">
-                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start">
-                          <div>
-                            <p className="text-xl font-semibold text-gray-900 mb-1">
-                              {getItemName(item)}
-                            </p>
-                            {item.description && (
-                              <p className="text-sm text-gray-500 mb-2">
-                                {item.description}
-                              </p>
-                            )}
-                          </div>
-                          <p className="text-lg font-medium text-gray-800 mb-4 sm:mb-0">
-                            ₹{Number(item.price || 0).toFixed(2)}
-                          </p>
-                        </div>
-                        <div className="flex flex-col sm:flex-row justify-between items-center mt-4">
-                          <div className="flex items-center mb-4 sm:mb-0">
-                            <button
-                              onClick={() => updateQuantity(getItemKey(item), "subtract")}
-                              className="bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-lg focus:outline-none transition-colors duration-200 flex items-center justify-center"
-                            >
-                              -
-                            </button>
-                            <span className="text-gray-700 font-medium mx-4">
-                              {item.quantity}
-                            </span>
-                            <button
-                              onClick={() => updateQuantity(getItemKey(item), "add")}
-                              className="bg-green-500 hover:bg-green-600 text-white w-8 h-8 rounded-lg focus:outline-none transition-colors duration-200 flex items-center justify-center"
-                            >
-                              +
-                            </button>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-gray-700 font-medium">
-                              Total: ₹{(Number(item.price || 0) * Number(item.quantity || 1)).toFixed(2)}
-                            </span>
-                            {showConfirmRemove === getItemKey(item) ? (
-                              <button
-                                onClick={() => handleRemoveItem(getItemKey(item))}
-                                className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg focus:outline-none transition-colors duration-200"
-                              >
-                                Confirm
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => handleRemoveItem(getItemKey(item))}
-                                className="text-red-500 hover:text-red-700 focus:outline-none transition-colors duration-200"
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="h-6 w-6"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                  />
-                                </svg>
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-                <div className="mb-6 flex justify-between items-center">
-                  <button
-                    onClick={() => navigate("/menu")}
-                    className="text-blue-600 hover:text-blue-800 flex items-center"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5 mr-1"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
+                {cartItems.length > 0 && (
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => navigate("/menu")}
+                      className="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-200 cursor-pointer"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 19l-7-7 7-7"
-                      />
-                    </svg>
-                    Continue Shopping
-                  </button>
-                  {cartItems.length > 0 && (
+                      Continue Shopping
+                    </button>
                     <button
                       onClick={() => {
                         if (window.confirm("Clear all items from cart?")) {
                           cartItems.forEach((item) => removeFromCart(getItemKey(item)));
                         }
                       }}
-                      className="text-red-500 hover:text-red-700 flex items-center"
+                      className="rounded-full bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 cursor-pointer"
                     >
+                      Clear Cart
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6">
+                {cartItems.length === 0 ? (
+                  <div className="rounded-[1.75rem] border border-dashed border-slate-200 bg-slate-50 px-6 py-14 text-center">
+                    <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-white shadow-sm">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5 mr-1"
+                        className="h-10 w-10 text-slate-300"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -358,286 +257,274 @@ const CartPage = ({
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
                         />
                       </svg>
-                      Clear Cart
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-950">Your cart is empty</h3>
+                    <p className="mt-2 text-slate-600">Looks like you haven’t added anything yet.</p>
+                    <button
+                      onClick={() => navigate("/menu")}
+                      className="mt-6 inline-flex items-center justify-center rounded-full bg-slate-950 px-6 py-3 font-semibold text-white transition hover:bg-slate-800 cursor-pointer"
+                    >
+                      Explore Menu
                     </button>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {cartItems.map((item, index) => (
+                      <motion.article
+                        key={getItemKey(item) || index}
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm transition hover:shadow-lg"
+                      >
+                        <div className="flex flex-col sm:flex-row">
+                          <div className="sm:w-44 lg:w-52">
+                            <img
+                              src={getItemImage(item)}
+                              alt={getItemName(item)}
+                              className="h-56 w-full object-cover sm:h-full"
+                              onError={(event) => {
+                                const fallbackSrc = getFallbackItemImage(item);
+                                if (event.currentTarget.src !== fallbackSrc) {
+                                  event.currentTarget.src = fallbackSrc;
+                                }
+                              }}
+                            />
+                          </div>
 
-          {/* Right Side Sections */}
-          <div className="w-full md:w-1/3 space-y-6">
-            {/* Order Summary */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="bg-white rounded-2xl shadow-lg p-6"
-            >
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Order Summary
-              </h2>
-              <div className="space-y-3">
-                <div className="flex justify-between pb-3 border-b border-gray-100">
-                  <span className="text-gray-600">Subtotal</span>
-                  <span className="font-medium">₹{getTotal().toFixed(2)}</span>
-                </div>
+                          <div className="flex flex-1 flex-col justify-between p-5 sm:p-6">
+                            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                              <div>
+                                <h3 className="text-2xl font-bold text-slate-950">{getItemName(item)}</h3>
+                                {item.description && (
+                                  <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
+                                    {item.description}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="rounded-full bg-blue-50 px-4 py-2 text-lg font-bold text-blue-700">
+                                ₹{Number(item.price || 0).toFixed(2)}
+                              </div>
+                            </div>
 
-                {discount > 0 && (
-                  <div className="flex justify-between pb-3 border-b border-gray-100">
-                    <span className="text-green-600">Discount</span>
-                    <span className="font-medium text-green-600">
-                      -₹{discount.toFixed(2)}
-                    </span>
+                            <div className="mt-5 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                              <div>
+                                <p className="text-sm font-semibold text-slate-600">Quantity</p>
+                                <div className="mt-2 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 p-1">
+                                  <button
+                                    onClick={() => updateQuantity(getItemKey(item), "subtract")}
+                                    className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-lg font-bold text-slate-700 shadow-sm transition hover:bg-slate-100 cursor-pointer"
+                                  >
+                                    -
+                                  </button>
+                                  <span className="min-w-12 px-4 text-center text-sm font-bold text-slate-950">
+                                    {item.quantity}
+                                  </span>
+                                  <button
+                                    onClick={() => updateQuantity(getItemKey(item), "add")}
+                                    className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 text-lg font-bold text-white shadow-sm transition hover:bg-slate-800 cursor-pointer"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+                                <div className="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700">
+                                  Total: ₹{(Number(item.price || 0) * Number(item.quantity || 1)).toFixed(2)}
+                                </div>
+                                {showConfirmRemove === getItemKey(item) ? (
+                                  <button
+                                    onClick={() => handleRemoveItem(getItemKey(item))}
+                                    className="rounded-full bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600 cursor-pointer"
+                                  >
+                                    Confirm Remove
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleRemoveItem(getItemKey(item))}
+                                    className="rounded-full bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 cursor-pointer"
+                                  >
+                                    Remove
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.article>
+                    ))}
                   </div>
                 )}
+              </div>
+            </motion.div>
+          </div>
 
-                <div className="flex justify-between pb-3 border-b border-gray-100">
-                  <span className="text-gray-600">Delivery Fee</span>
-                  <span className="font-medium">
+          <div className="xl:col-span-4 space-y-6">
+            <motion.aside
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.1 }}
+              className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm xl:sticky xl:top-28"
+            >
+              <h2 className="text-2xl font-bold text-slate-950">Order summary</h2>
+              <div className="mt-5 space-y-3 text-sm">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <span className="text-slate-600">Subtotal</span>
+                  <span className="font-semibold text-slate-950">₹{getTotal().toFixed(2)}</span>
+                </div>
+                {discount > 0 && (
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <span className="text-emerald-600">Discount</span>
+                    <span className="font-semibold text-emerald-600">-₹{discount.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <span className="text-slate-600">Delivery Fee</span>
+                  <span className="font-semibold text-slate-950">
                     {deliveryFee > 0 ? `₹${deliveryFee.toFixed(2)}` : "Free"}
                   </span>
                 </div>
-
-                <div className="flex justify-between text-lg font-semibold">
+                <div className="flex items-center justify-between pt-1 text-lg font-bold text-slate-950">
                   <span>Total</span>
                   <span>₹{getFinalTotal().toFixed(2)}</span>
                 </div>
               </div>
-            </motion.div>
+            </motion.aside>
 
-            {/* Coupon Code */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
+            <motion.section
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="bg-white rounded-2xl shadow-lg p-6"
+              transition={{ duration: 0.45, delay: 0.2 }}
+              className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm"
             >
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Apply Coupon
-              </h2>
-              <div className="flex space-x-2">
+              <h2 className="text-xl font-bold text-slate-950">Apply coupon</h2>
+              <div className="mt-4 flex gap-2">
                 <input
                   type="text"
                   value={couponCode}
                   onChange={(e) => setCouponCode(e.target.value)}
                   placeholder="Enter coupon code"
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="min-w-0 flex-1 rounded-full border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
                 />
                 <button
                   onClick={applyCoupon}
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+                  className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 cursor-pointer"
                 >
                   Apply
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-2">
-                Try 'FIRST10' for 10% off or 'FREE' for ₹50 off
+              <p className="mt-3 text-xs text-slate-500">
+                Try FIRST10 for 10% off or FREE for ₹50 off.
               </p>
-            </motion.div>
+            </motion.section>
 
-            {/* Delivery Options */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
+            <motion.section
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              className="bg-white rounded-2xl shadow-lg p-6"
+              transition={{ duration: 0.45, delay: 0.3 }}
+              className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm"
             >
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Delivery Options
-              </h2>
-              <div className="space-y-3">
-                <div
-                  onClick={() => updateDeliveryOption("standard")}
-                  className={`p-3 border rounded-lg cursor-pointer transition-all duration-200 ${
-                    deliveryOption === "standard"
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-200 hover:border-blue-300"
-                  }`}
-                >
-                  <div className="flex items-center">
-                    <input
-                      type="radio"
-                      checked={deliveryOption === "standard"}
-                      onChange={() => updateDeliveryOption("standard")}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500"
-                    />
-                    <div className="ml-3">
-                      <span className="block font-medium">
-                        Standard Delivery
-                      </span>
-                      <span className="text-sm text-gray-500">
-                        Free • 2-3 days
-                      </span>
-                    </div>
-                  </div>
-                </div>
+              <h2 className="text-xl font-bold text-slate-950">Delivery options</h2>
+              <div className="mt-4 space-y-3">
+                {[
+                  { key: "standard", title: "Standard Delivery", meta: "Free • 2-3 days" },
+                  { key: "express", title: "Express Delivery", meta: "₹49 • Same day" },
+                  { key: "scheduled", title: "Scheduled Delivery", meta: "₹29 • Choose date & time" },
+                ].map((option) => {
+                  const isActive = deliveryOption === option.key;
 
-                <div
-                  onClick={() => updateDeliveryOption("express")}
-                  className={`p-3 border rounded-lg cursor-pointer transition-all duration-200 ${
-                    deliveryOption === "express"
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-200 hover:border-blue-300"
-                  }`}
-                >
-                  <div className="flex items-center">
-                    <input
-                      type="radio"
-                      checked={deliveryOption === "express"}
-                      onChange={() => updateDeliveryOption("express")}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500"
-                    />
-                    <div className="ml-3">
-                      <span className="block font-medium">
-                        Express Delivery
-                      </span>
-                      <span className="text-sm text-gray-500">
-                        ₹49 • Same day
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  onClick={() => updateDeliveryOption("scheduled")}
-                  className={`p-3 border rounded-lg cursor-pointer transition-all duration-200 ${
-                    deliveryOption === "scheduled"
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-200 hover:border-blue-300"
-                  }`}
-                >
-                  <div
-                    onClick={() => updateDeliveryOption("scheduled")}
-                    className={`cursor-pointer transition-all duration-200 ${
-                      deliveryOption === "scheduled"
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:border-blue-300"
-                    }`}
-                  >
-                    <div className="flex items-center">
-                      <input
-                        type="radio"
-                        checked={deliveryOption === "scheduled"}
-                        onChange={() => updateDeliveryOption("scheduled")}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500"
-                      />
-                      <div className="ml-3">
-                        <span className="block font-medium">
-                          Scheduled Delivery
-                        </span>
-                        <span className="text-sm text-gray-500">
-                          ₹29 • Choose date & time
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Date and Time Selector that appears when scheduled delivery is selected */}
-                    {deliveryOption === "scheduled" && (
-                      <div className="mt-3 pt-3 border-t border-gray-100">
-                        <div className="mb-3">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Delivery Date
-                          </label>
-                          <input
-                            type="date"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            min={new Date().toISOString().split("T")[0]} // Set min to today
-                            onChange={(e) => {
-                              // Handle date selection
-                              console.log("Selected date:", e.target.value);
-                              // You can store this in state if needed
-                            }}
-                          />
-                        </div>
-
+                  return (
+                    <button
+                      key={option.key}
+                      onClick={() => updateDeliveryOption(option.key)}
+                      className={`w-full rounded-2xl border p-4 text-left transition cursor-pointer ${
+                        isActive ? "border-blue-300 bg-blue-50" : "border-slate-200 bg-white hover:bg-slate-50"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="radio"
+                          checked={isActive}
+                          readOnly
+                          className="mt-1 h-4 w-4 text-blue-600"
+                        />
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Delivery Time
-                          </label>
-                          <select
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            onChange={(e) => {
-                              // Handle time selection
-                              console.log(
-                                "Selected time slot:",
-                                e.target.value
-                              );
-                              // You can store this in state if needed
-                            }}
-                          >
-                            <option value="">Select a time slot</option>
-                            <option value="9am-12pm">9:00 AM - 12:00 PM</option>
-                            <option value="12pm-3pm">12:00 PM - 3:00 PM</option>
-                            <option value="3pm-6pm">3:00 PM - 6:00 PM</option>
-                            <option value="6pm-9pm">6:00 PM - 9:00 PM</option>
-                          </select>
+                          <span className="block font-semibold text-slate-950">{option.title}</span>
+                          <span className="text-sm text-slate-600">{option.meta}</span>
                         </div>
                       </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
 
-            {/* Address Section */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
+                      {option.key === "scheduled" && isActive && (
+                        <div className="mt-4 space-y-3 border-t border-blue-100 pt-4">
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                              Delivery Date
+                            </label>
+                            <input
+                              type="date"
+                              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
+                              min={new Date().toISOString().split("T")[0]}
+                            />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                              Delivery Time
+                            </label>
+                            <select className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-100">
+                              <option value="">Select a time slot</option>
+                              <option value="9am-12pm">9:00 AM - 12:00 PM</option>
+                              <option value="12pm-3pm">12:00 PM - 3:00 PM</option>
+                              <option value="3pm-6pm">3:00 PM - 6:00 PM</option>
+                              <option value="6pm-9pm">6:00 PM - 9:00 PM</option>
+                            </select>
+                          </div>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.section>
+
+            <motion.section
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.5 }}
-              className="bg-white rounded-2xl shadow-lg p-6"
+              transition={{ duration: 0.45, delay: 0.4 }}
+              className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm"
             >
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Delivery Address
-              </h2>
-              <div className="space-y-4">
+              <h2 className="text-xl font-bold text-slate-950">Delivery address</h2>
+              <div className="mt-4 space-y-4">
                 <div className="relative">
                   <textarea
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="Enter your delivery address"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-24"
+                    className="h-28 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
                   />
 
                   {savedAddresses.length > 0 && (
                     <div className="mt-2">
                       <button
-                        onClick={() =>
-                          setShowAddressDropdown(!showAddressDropdown)
-                        }
-                        className="text-blue-500 hover:text-blue-700 text-sm flex items-center"
+                        onClick={() => setShowAddressDropdown(!showAddressDropdown)}
+                        className="text-sm font-semibold text-blue-600 transition hover:text-blue-700 cursor-pointer"
                       >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4 mr-1"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                          />
-                        </svg>
                         Use Saved Address
                       </button>
 
                       {showAddressDropdown && (
-                        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg">
+                        <div className="absolute z-10 mt-2 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
                           {savedAddresses.map((savedAddress, index) => (
-                            <div
+                            <button
                               key={index}
                               onClick={() => selectAddress(savedAddress)}
-                              className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm border-b border-gray-100 last:border-b-0"
+                              className="block w-full border-b border-slate-100 px-4 py-3 text-left text-sm text-slate-700 last:border-b-0 hover:bg-blue-50 cursor-pointer"
                             >
                               {savedAddress}
-                            </div>
+                            </button>
                           ))}
                         </div>
                       )}
@@ -645,50 +532,34 @@ const CartPage = ({
                   )}
                 </div>
 
-                <div className="flex space-x-2">
-                  <button
-                    onClick={saveAddress}
-                    className="text-blue-500 hover:text-blue-700 text-sm flex items-center"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 mr-1"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
-                      />
-                    </svg>
-                    Save This Address
-                  </button>
-                </div>
+                <button
+                  onClick={saveAddress}
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 transition hover:text-blue-700 cursor-pointer"
+                >
+                  Save This Address
+                </button>
               </div>
-            </motion.div>
+            </motion.section>
 
-            {/* Checkout Button */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
+            <motion.section
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.6 }}
+              transition={{ duration: 0.45, delay: 0.5 }}
+              className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm"
             >
               <button
                 onClick={makePayment}
                 disabled={isProcessing || cartItems.length === 0}
-                className={`w-full py-4 rounded-xl font-medium text-white text-lg shadow-lg transition-all duration-300 flex items-center justify-center ${
+                className={`inline-flex w-full items-center justify-center rounded-full px-5 py-4 text-lg font-semibold text-white transition cursor-pointer ${
                   isProcessing || cartItems.length === 0
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 hover:shadow-xl"
+                    ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                    : "bg-slate-950 hover:bg-slate-800"
                 }`}
               >
                 {isProcessing ? (
                   <>
                     <svg
-                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                      className="-ml-1 mr-3 h-5 w-5 animate-spin text-white"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
                       viewBox="0 0 24 24"
@@ -700,26 +571,34 @@ const CartPage = ({
                         r="10"
                         stroke="currentColor"
                         strokeWidth="4"
-                      ></circle>
+                      />
                       <path
                         className="opacity-75"
                         fill="currentColor"
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
+                      />
                     </svg>
                     Processing...
                   </>
+                ) : isAuthenticated ? (
+                  "Proceed to Payment"
                 ) : (
-                  <>Proceed to Payment</>
+                  "Sign In to Pay"
                 )}
               </button>
-              <p className="text-xs text-center text-gray-500 mt-2">
-                Secure payment powered by Stripe
+
+              {!isAuthenticated && (
+                <p className="mt-3 text-center text-xs text-slate-500">
+                  You can add items to cart as a guest. Sign in only when you are ready to pay.
+                </p>
+              )}
+              <p className="mt-2 text-center text-xs text-slate-500">
+                Secure payment powered by Stripe.
               </p>
-            </motion.div>
+            </motion.section>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 };
