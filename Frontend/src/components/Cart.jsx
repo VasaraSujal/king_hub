@@ -299,6 +299,18 @@ const CartPage = ({
                             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                               <div>
                                 <h3 className="text-2xl font-bold text-slate-950">{getItemName(item)}</h3>
+                                <div className="mt-1.5 flex flex-wrap gap-2 text-xs">
+                                  {item.selectedSize && (
+                                    <span className="rounded-full bg-slate-100 px-3 py-1 font-semibold text-slate-700">
+                                      Size: {item.selectedSize}
+                                    </span>
+                                  )}
+                                  {Array.isArray(item.addOns) && item.addOns.length > 0 && (
+                                    <span className="rounded-full bg-orange-50 px-3 py-1 font-semibold text-orange-700">
+                                      Add-ons: {item.addOns.map((a) => a.name).join(", ")}
+                                    </span>
+                                  )}
+                                </div>
                                 {item.description && (
                                   <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
                                     {item.description}
