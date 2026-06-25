@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Footer from "./Footer.jsx";
 
 const reveal = {
   hidden: { opacity: 0, y: 20 },
@@ -126,8 +125,8 @@ function Hier() {
 
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-100/80 via-white to-blue-200/60" />
-        <div className="relative container mx-auto px-6 pt-16 pb-14 md:pt-20 md:pb-20">
-          <motion.div initial="hidden" animate="visible" variants={reveal} className="max-w-3xl">
+        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-16 pb-14 md:pt-20 md:pb-20">
+          <motion.div initial="hidden" animate="visible" variants={reveal} className="max-w-3xl mx-auto text-center">
             <span className="inline-flex rounded-full bg-blue-100 text-blue-700 px-4 py-1.5 text-sm font-semibold">
               Join King Hub
             </span>
@@ -141,11 +140,11 @@ function Hier() {
         </div>
       </section>
 
-      <section className="container mx-auto px-6 py-12">
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-12">
         <h2 className="text-3xl font-bold text-slate-900 text-center">Why Join Us</h2>
-        <div className="mt-7 grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="mt-7 grid grid-cols-1 md:grid-cols-3 gap-6">
           {benefits.map((item) => (
-            <article key={item.title} className="surface-panel p-6">
+            <article key={item.title} className="surface-panel p-6 rounded-2xl transition-transform hover:-translate-y-1 hover:shadow-md cursor-pointer">
               <h3 className="text-xl font-bold text-slate-900">{item.title}</h3>
               <p className="mt-2 text-slate-600">{item.text}</p>
             </article>
@@ -153,12 +152,12 @@ function Hier() {
         </div>
       </section>
 
-      <section className="container mx-auto px-6 pb-12">
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-12">
         <div className="surface-panel p-7 md:p-9">
           <h2 className="text-3xl font-bold text-slate-900">Requirements</h2>
           <ul className="mt-5 space-y-3">
             {requirements.map((item) => (
-              <li key={item} className="text-slate-600 flex items-start gap-3">
+              <li key={item} className="text-slate-600 flex items-start gap-3 rounded-lg p-3 bg-white/0">
                 <span className="mt-1 w-2 h-2 rounded-full bg-blue-600" />
                 <span>{item}</span>
               </li>
@@ -167,13 +166,13 @@ function Hier() {
         </div>
       </section>
 
-      <section className="container mx-auto px-6 pb-12">
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-12">
         <div className="grid lg:grid-cols-2 gap-6">
           <article className="surface-panel p-7">
             <h2 className="text-2xl font-bold text-slate-900">How Onboarding Works</h2>
             <div className="mt-5 space-y-4">
               {onboardingSteps.map((step, index) => (
-                <div key={step.title} className="rounded-xl border border-blue-100 bg-blue-50/40 p-4">
+                <div key={step.title} className="rounded-2xl border border-blue-100 bg-blue-50/30 p-4 hover:shadow-md transition">
                   <p className="text-sm font-semibold text-blue-700">Step {index + 1}</p>
                   <h3 className="mt-1 text-lg font-bold text-slate-900">{step.title}</h3>
                   <p className="mt-1 text-slate-600">{step.detail}</p>
@@ -182,14 +181,14 @@ function Hier() {
             </div>
           </article>
 
-          <article className="surface-panel p-7">
+            <article className="surface-panel p-7">
             <h2 className="text-2xl font-bold text-slate-900">Earnings Structure</h2>
             <p className="mt-3 text-slate-600 leading-relaxed">
               Your income depends on completed deliveries, active hours, location demand, and incentive eligibility.
             </p>
             <ul className="mt-5 space-y-3">
               {earningBreakdown.map((item) => (
-                <li key={item} className="text-slate-600 flex items-start gap-3">
+                <li key={item} className="text-slate-600 flex items-start gap-3 rounded-lg p-3 bg-white/0">
                   <span className="mt-2 w-2 h-2 rounded-full bg-blue-600" />
                   <span>{item}</span>
                 </li>
@@ -199,7 +198,7 @@ function Hier() {
         </div>
       </section>
 
-      <section className="container mx-auto px-6 pb-12">
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-12">
         <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={reveal}>
           <div className="surface-panel p-7 md:p-9">
             <h2 className="text-3xl font-bold text-slate-900 text-center">Apply Now</h2>
@@ -283,7 +282,7 @@ function Hier() {
 
               <button
                 type="submit"
-                className="w-full rounded-xl bg-blue-600 text-white py-3 font-semibold hover:bg-blue-700 disabled:opacity-70"
+                className="w-full rounded-xl bg-blue-600 text-white py-3 font-semibold hover:bg-blue-700 disabled:opacity-70 cursor-pointer"
                 disabled={loading}
               >
                 {loading ? "Submitting..." : "Submit Application"}
@@ -293,14 +292,14 @@ function Hier() {
         </motion.div>
       </section>
 
-      <section className="container mx-auto px-6 pb-16">
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-16">
         <h2 className="text-3xl font-bold text-slate-900 text-center">Frequently Asked Questions</h2>
         <div className="mt-8 space-y-3 max-w-3xl mx-auto">
           {faqData.map((faq, index) => (
             <div key={faq.question} className="surface-panel overflow-hidden">
               <button
                 onClick={() => setOpenFAQ(openFAQ === index ? null : index)}
-                className="w-full px-5 py-4 text-left flex justify-between items-center"
+                className="w-full px-5 py-4 text-left flex justify-between items-center cursor-pointer"
               >
                 <span className="font-semibold text-slate-800">{faq.question}</span>
                 <span className="text-blue-700 text-lg">{openFAQ === index ? "-" : "+"}</span>
@@ -311,7 +310,6 @@ function Hier() {
         </div>
       </section>
 
-      <Footer />
     </div>
   );
 }
