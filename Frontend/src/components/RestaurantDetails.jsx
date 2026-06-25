@@ -1353,9 +1353,23 @@ const RestaurantDetails = ({
                             </div>
                             <div className="ml-4 flex-1">
                               <div className="flex justify-between items-start">
-                                <h4 className="font-medium text-gray-900">
-                                  {item.foodname || item.itemName}
-                                </h4>
+                                <div>
+                                  <h4 className="font-medium text-gray-900">
+                                    {item.foodname || item.itemName}
+                                  </h4>
+                                  <div className="mt-1 flex flex-wrap gap-1 text-[11px]">
+                                    {item.selectedSize && (
+                                      <span className="rounded-full bg-gray-100 px-2 py-0.5 font-medium text-gray-600">
+                                        {item.selectedSize}
+                                      </span>
+                                    )}
+                                    {Array.isArray(item.addOns) && item.addOns.length > 0 && (
+                                      <span className="rounded-full bg-indigo-50 px-2 py-0.5 font-medium text-indigo-600">
+                                        + {item.addOns.map((a) => a.name).join(", ")}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
                                 <span className="font-bold text-indigo-600">
                                   ₹{(Number(item.price || 0) * Number(item.quantity || 1)).toFixed(2)}
                                 </span>
